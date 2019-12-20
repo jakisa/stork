@@ -6,7 +6,7 @@
 int main() {
 	using namespace lightscript;
 	
-	if(FILE* fp = fopen("../test.lts", "rb")) {
+	if(FILE* fp = fopen("test.lts", "rb")) {
 		try {
 			tokenize(
 				[fp](){

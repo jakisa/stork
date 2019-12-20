@@ -147,19 +147,21 @@ namespace lightscript {
 		std::optional<reserved_token> ret;
 		size_t match_size = 0;
 		
-		int c = stream();
+		std::stack<int> chars;
+		chars.push(stream());
 		size_t idx = 0;
 		
-		for (; c >= 0 && candidates.first != candidates.second; c = stream(), ++idx) {
+		for (; chars.top() >= 0 && candidates.first != candidates.second; chars.push(stream()), ++idx) {
 			if (candidates.first->first.size() == idx) {
 				match_size = idx;
 				ret = candidates.first->second;
 			}
-			candidates = std::equal_range(candidates.first, candidates.second, char(c), maximal_munch_comparator(idx));
+			candidates = std::equal_range(candidates.first, candidates.second, char(chars.top()), maximal_munch_comparator(idx));
 		}
 		
 		for (size_t i = match_size; i <= idx; ++i) {
-			stream.push_back(c);
+			stream.push_back(chars.top());
+			chars.pop();
 		}
 		
 		return ret;
