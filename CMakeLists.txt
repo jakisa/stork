@@ -9,8 +9,6 @@ file(GLOB_RECURSE HEADERS "source/*.hpp")
 
 add_executable(lightscript ${SOURCES} ${HEADERS})
 
-configure_file(resource/test.lts test.lts COPYONLY)
-
 set_target_properties(lightscript PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED OFF
