@@ -112,4 +112,56 @@ namespace lightscript {
 		auto it = keyword_token_map.find(word);
 		return it == keyword_token_map.end() ? std::nullopt : std::make_optional(it->second);
 	}
+	
+	namespace {
+		class maximal_munch_comparator{
+		private:
+			size_t _idx;
+		public:
+			maximal_munch_comparator(size_t idx) :
+				_idx(idx)
+			{
+			}
+			
+			bool operator()(char l, char r) const {
+				return l < r;
+			}
+			
+			bool operator()(std::pair<std::string_view, reserved_token> l, char r) const {
+				return l.first.size() <= _idx || l.first[_idx] < r;
+			}
+			
+			bool operator()(char l, std::pair<std::string_view, reserved_token> r) const {
+				return r.first.size() > _idx && l < r.first[_idx];
+			}
+			
+			bool operator()(std::pair<std::string_view, reserved_token> l, std::pair<std::string_view, reserved_token> r) const {
+				return r.first.size() > _idx && (l.first.size() < _idx || l.first[_idx] < r.first[_idx]);
+			}
+		};
+	}
+	
+	std::optional<reserved_token> get_operator(push_back_stream& stream) {
+		auto candidates = std::make_pair(operator_token_map.begin(), operator_token_map.end());
+		
+		std::optional<reserved_token> ret;
+		size_t match_size = 0;
+		
+		int c = stream();
+		size_t idx = 0;
+		
+		for (; c >= 0 && candidates.first != candidates.second; c = stream(), ++idx) {
+			if (candidates.first->first.size() == idx) {
+				match_size = idx;
+				ret = candidates.first->second;
+			}
+			candidates = std::equal_range(candidates.first, candidates.second, char(c), maximal_munch_comparator(idx));
+		}
+		
+		for (size_t i = match_size; i <= idx; ++i) {
+			stream.push_back(c);
+		}
+		
+		return ret;
+	}
 }

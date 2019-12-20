@@ -4,11 +4,11 @@
 #include <cctype>
 #include <stack>
 #include <cstdlib>
+#include "push_back_stream.hpp"
+#include "errors.hpp"
 
 namespace lightscript {
 	namespace {
-		
-		
 		enum struct character_type {
 			eof,
 			space,
@@ -29,32 +29,8 @@ namespace lightscript {
 			return character_type::punct;
 		}
 		
-		class unreadable_stream {
-		private:
-			const get_character& _input;
-			std::stack<int> _stack;
-		public:
-			unreadable_stream(const get_character& input) :
-				_input(input)
-			{
-			}
-			
-			int operator()() {
-				if (_stack.empty()) {
-					return _input();
-				}
-				int ret = _stack.top();
-				_stack.pop();
-				return ret;
-			}
-			
-			void unread(int c) {
-				_stack.push(c);
-			}
-		};
-		
 		void fetch_word(
-			unreadable_stream& stream,
+			push_back_stream& stream,
 			const reserved_token_callback& on_reserved_token,
 			const identifier_callback& on_identifier,
 			const number_callback& on_number
@@ -70,7 +46,7 @@ namespace lightscript {
 				c = stream();
 			} while (get_character_type(c) == character_type::alphanum || (is_number && c == '.'));
 			
-			stream.unread(c);
+			stream.push_back(c);
 			
 			if (std::optional<reserved_token> token  = get_keyword(word)) {
 				on_reserved_token(*token);
@@ -81,7 +57,7 @@ namespace lightscript {
 					if (*endptr != 0) {
 						num = strtol(word.c_str(), &endptr, 0);
 						if (*endptr != 0) {
-							//THROW!!!
+							throw_unexpected_error(std::string(1, char(*endptr)), stream.line_number());
 						}
 					}
 					on_number(num);
@@ -91,26 +67,20 @@ namespace lightscript {
 			}
 		}
 		
-		/* is_token_still_prefix(const std::string& token, const std::stringview& key) {
-			return key.size() > token.size() &&
-		}*/
-		
-		enum struct greedy_match_result {
-			greedy_match_prefix,
-			greedy_match_none,
-			greedy_match_same,
-		};
-		
-		//TODO:
-		void fetch_operator(unreadable_stream& stream, const reserved_token_callback& on_reserved_token) {
-			/*std::string tok;
-			
-			do {
-				tok.push_back(stream());
-			} while (*/
+		void fetch_operator(push_back_stream& stream, const reserved_token_callback& on_reserved_token) {
+			if (std::optional<reserved_token> token = get_operator(stream)) {
+				on_reserved_token(*token);
+			} else {
+				std::string unexpected;
+				size_t line_number = stream.line_number();
+				for (int c = stream(); get_character_type(c) == character_type::punct; c = stream()) {
+					unexpected.push_back(char(c));
+				}
+				throw_unexpected_error(unexpected, line_number);
+			}
 		}
 		
-		void fetch_string(unreadable_stream& stream, const string_callback& on_string) {
+		void fetch_string(push_back_stream& stream, const string_callback& on_string) {
 			int c = stream();
 			
 			std::string str;
@@ -144,7 +114,7 @@ namespace lightscript {
 							case '\t':
 							case '\n':
 							case '\r':
-								//THROW!!!
+								throw_parsing_error("Expected closing '\"'", stream.line_number());
 								break;
 							case '"':
 								on_string(str);
@@ -157,22 +127,21 @@ namespace lightscript {
 				c = stream();
 			} while (get_character_type(c) != character_type::eof);
 			
-			//THROW!!!
-			stream.unread(c);
+			throw_parsing_error("Expected closing '\"'", stream.line_number());
 		}
 		
-		void skip_line_comment(unreadable_stream& stream) {
+		void skip_line_comment(push_back_stream& stream) {
 			int c;
 			do {
 				c = stream();
 			} while (c != '\n' && get_character_type(c) != character_type::eof);
 			
 			if (c != '\n') {
-				stream.unread(c);
+				stream.push_back(c);
 			}
 		}
 		
-		void skip_block_comment(unreadable_stream& stream) {
+		void skip_block_comment(push_back_stream& stream) {
 			bool closing = false;
 			int c;
 			do {
@@ -183,8 +152,8 @@ namespace lightscript {
 				closing = (c == '*');
 			} while (get_character_type(c) != character_type::eof);
 
-			//THROW!!!
-			stream.unread(c);
+			throw_parsing_error("Expected closing '*/'", stream.line_number());
+			stream.push_back(c);
 		}
 	}
 	
@@ -195,7 +164,7 @@ namespace lightscript {
 		const number_callback& on_number,
 		const string_callback& on_string
 	) {
-		unreadable_stream stream(input);
+		push_back_stream stream(input);
 		while (true) {
 			int c = stream();
 			switch (get_character_type(c)) {
@@ -204,7 +173,7 @@ namespace lightscript {
 				case character_type::space:
 					continue;
 				case character_type::alphanum:
-					stream.unread(c);
+					stream.push_back(c);
 					fetch_word(stream, on_reserved_token, on_identifier, on_number);
 					break;
 				case character_type::punct:
@@ -223,11 +192,11 @@ namespace lightscript {
 									skip_block_comment(stream);
 									continue;
 								default:
-									stream.unread(c1);
+									stream.push_back(c1);
 							}
 						}
 						default:
-							stream.unread(c);
+							stream.push_back(c);
 							fetch_operator(stream, on_reserved_token);
 					}
 					break;

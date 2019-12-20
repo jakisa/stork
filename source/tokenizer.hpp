@@ -8,10 +8,6 @@
 #include "tokens.hpp"
 
 namespace lightscript {
-	std::ostream& operator<<(std::ostream& os, reserved_token t);
-	
-	using get_character = std::function<int()>;
-	
 	using reserved_token_callback = std::function<void(reserved_token)>;
 	using identifier_callback = std::function<void(std::string_view)>;
 	using number_callback = std::function<void(double)>;

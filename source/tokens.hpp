@@ -5,6 +5,8 @@
 #include <string_view>
 #include <ostream>
 
+#include "push_back_stream.hpp"
+
 namespace lightscript {
 	enum struct reserved_token {
 		inc,
@@ -89,8 +91,11 @@ namespace lightscript {
 		kw_number,
 		kw_string,
 	};
+	std::ostream& operator<<(std::ostream& os, reserved_token t);
 	
 	std::optional<reserved_token> get_keyword(std::string_view word);
+	
+	std::optional<reserved_token> get_operator(push_back_stream& stream);
 }
 
 #endif /* tokens_hpp */
