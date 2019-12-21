@@ -1,0 +1,3 @@
+# lightscript
+Lightweight scripting language with C++ integration.
+Work in progress...
