@@ -3,7 +3,8 @@
 namespace lightscript {
 	push_back_stream::push_back_stream(const get_character& input) :
 		_input(input),
-		_line_number(0)
+		_line_number(0),
+		_char_index(0)
 	{
 	}
 		
@@ -19,6 +20,8 @@ namespace lightscript {
 			++_line_number;
 		}
 		
+		++_char_index;
+		
 		return ret;
 	}
 	
@@ -28,10 +31,16 @@ namespace lightscript {
 		if (c == '\n') {
 			--_line_number;
 		}
+		
+		--_char_index;
 	}
 	
 	size_t push_back_stream::line_number() const {
 		return _line_number;
+	}
+	
+	size_t push_back_stream::char_index() const {
+		return _char_index;
 	}
 }
 

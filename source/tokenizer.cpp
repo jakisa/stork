@@ -57,7 +57,7 @@ namespace lightscript {
 					if (*endptr != 0) {
 						num = strtol(word.c_str(), &endptr, 0);
 						if (*endptr != 0) {
-							throw_unexpected_error(std::string(1, char(*endptr)), stream.line_number());
+							throw_unexpected_error(std::string(1, char(*endptr)), stream.line_number(), stream.char_index());
 						}
 					}
 					on_number(num);
@@ -73,10 +73,11 @@ namespace lightscript {
 			} else {
 				std::string unexpected;
 				size_t line_number = stream.line_number();
+				size_t char_index = stream.char_index();
 				for (int c = stream(); get_character_type(c) == character_type::punct; c = stream()) {
 					unexpected.push_back(char(c));
 				}
-				throw_unexpected_error(unexpected, line_number);
+				throw_unexpected_error(unexpected, line_number, char_index);
 			}
 		}
 		
@@ -114,7 +115,7 @@ namespace lightscript {
 							case '\t':
 							case '\n':
 							case '\r':
-								throw_parsing_error("Expected closing '\"'", stream.line_number());
+								throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 								break;
 							case '"':
 								on_string(str);
@@ -127,7 +128,7 @@ namespace lightscript {
 				c = stream();
 			} while (get_character_type(c) != character_type::eof);
 			
-			throw_parsing_error("Expected closing '\"'", stream.line_number());
+			throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 		}
 		
 		void skip_line_comment(push_back_stream& stream) {
@@ -152,7 +153,7 @@ namespace lightscript {
 				closing = (c == '*');
 			} while (get_character_type(c) != character_type::eof);
 
-			throw_parsing_error("Expected closing '*/'", stream.line_number());
+			throw_parsing_error("Expected closing '*/'", stream.line_number(), stream.char_index());
 			stream.push_back(c);
 		}
 	}

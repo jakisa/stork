@@ -7,11 +7,13 @@ int main() {
 	using namespace lightscript;
 	
 	if(FILE* fp = fopen("test.lts", "rb")) {
+		get_character input = [fp]() {
+			return fgetc(fp);
+		};
+	
 		try {
 			tokenize(
-				[fp](){
-					return fgetc(fp);
-				},
+				input,
 				[](reserved_token t) {
 					std::cout << "Token: " << t << std::endl;
 				},
@@ -26,7 +28,8 @@ int main() {
 				}
 			);
 		} catch(const error& err) {
-			std::cerr << err.what() << std::endl;
+			fseek(fp, 0, SEEK_SET);
+			format_error(err, input, std::cerr);
 		}
 		
 		fclose(fp);
