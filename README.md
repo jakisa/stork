@@ -1,3 +1,3 @@
-# lightscript
-Lightweight scripting language with C++ integration.
+# Stork
+A small footprint scripting language with C++ integration.
 Work in progress...
