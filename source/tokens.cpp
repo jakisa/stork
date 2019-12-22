@@ -2,7 +2,7 @@
 #include "lookup.hpp"
 #include <string_view>
 
-namespace lightscript {
+namespace stork {
 	namespace {
 		const lookup<std::string_view, reserved_token> operator_token_map {
 			{"++", reserved_token::inc},

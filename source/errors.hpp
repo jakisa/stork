@@ -6,7 +6,7 @@
 #include <string_view>
 #include <ostream>
 
-namespace lightscript {
+namespace stork {
 	class error: public std::exception {
 	private:
 		std::string _message;

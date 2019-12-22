@@ -7,7 +7,7 @@
 
 #include "push_back_stream.hpp"
 
-namespace lightscript {
+namespace stork {
 	enum struct reserved_token {
 		inc,
 		dec,

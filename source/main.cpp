@@ -4,9 +4,9 @@
 #include "errors.hpp"
 
 int main() {
-	using namespace lightscript;
+	using namespace stork;
 	
-	if(FILE* fp = fopen("test.lts", "rb")) {
+	if(FILE* fp = fopen("test.stk", "rb")) {
 		get_character input = [fp]() {
 			return fgetc(fp);
 		};
