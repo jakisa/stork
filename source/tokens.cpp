@@ -10,6 +10,7 @@ namespace stork {
 			
 			{"+", reserved_token::add},
 			{"-", reserved_token::sub},
+			{"..", reserved_token::concat},
 			{"*", reserved_token::mul},
 			{"/", reserved_token::div},
 			{"\\", reserved_token::idiv},
@@ -26,6 +27,7 @@ namespace stork {
 			
 			{"+=", reserved_token::add_assign},
 			{"-=", reserved_token::sub_assign},
+			{"..=", reserved_token::concat_assign},
 			{"*=", reserved_token::mul_assign},
 			{"/=", reserved_token::div_assign},
 			{"\\=", reserved_token::idiv_assign},

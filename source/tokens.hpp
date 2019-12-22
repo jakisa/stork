@@ -14,6 +14,7 @@ namespace stork {
 		
 		add,
 		sub,
+		concat,
 		mul,
 		div,
 		idiv,
@@ -30,6 +31,7 @@ namespace stork {
 		
 		add_assign,
 		sub_assign,
+		concat_assign,
 		mul_assign,
 		div_assign,
 		idiv_assign,
