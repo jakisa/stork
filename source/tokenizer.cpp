@@ -56,7 +56,7 @@ namespace stork {
 						num = strtod(word.c_str(), &endptr);
 						if (*endptr != 0) {
 							size_t remaining = word.size() - (endptr - word.c_str());
-							throw_unexpected_error(
+							throw unexpected_error(
 								std::string(1, char(*endptr)),
 								stream.line_number(),
 								stream.char_index() - remaining
@@ -83,8 +83,7 @@ namespace stork {
 				for (int c = stream(); get_character_type(c) == character_type::punct; c = stream()) {
 					unexpected.push_back(char(c));
 				}
-				throw_unexpected_error(unexpected, err_line_number, err_char_index);
-				return token(eof(), line_number, char_index);
+				throw unexpected_error(unexpected, err_line_number, err_char_index);
 			}
 		}
 		
@@ -125,8 +124,7 @@ namespace stork {
 							case '\t':
 							case '\n':
 							case '\r':
-								throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
-								break;
+								throw parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 							case '"':
 								return token(std::move(str), line_number, char_index);
 							default:
@@ -137,8 +135,7 @@ namespace stork {
 				c = stream();
 			} while (get_character_type(c) != character_type::eof);
 			
-			throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
-			return token(eof(), line_number, char_index);
+			throw parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 		}
 		
 		void skip_line_comment(push_back_stream& stream) {
@@ -163,8 +160,7 @@ namespace stork {
 				closing = (c == '*');
 			} while (get_character_type(c) != character_type::eof);
 
-			throw_parsing_error("Expected closing '*/'", stream.line_number(), stream.char_index());
-			stream.push_back(c);
+			throw parsing_error("Expected closing '*/'", stream.line_number(), stream.char_index());
 		}
 	}
 	

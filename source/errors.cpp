@@ -20,17 +20,17 @@ namespace stork {
 		return _char_index;
 	}
 	
-	void throw_parsing_error(const char* message, size_t line_number, size_t char_index) {
+	error parsing_error(const char* message, size_t line_number, size_t char_index) {
 		std::string error_message("Parsing error: ");
 		error_message += message;
-		throw error(std::move(error_message), line_number, char_index);
+		return error(std::move(error_message), line_number, char_index);
 	}
 	
-	void throw_unexpected_error(std::string_view unexpected, size_t line_number, size_t char_index) {
+	error unexpected_error(std::string_view unexpected, size_t line_number, size_t char_index) {
 		std::string message("Unexpected '");
 		message += unexpected;
 		message += "'";
-		throw_parsing_error(message.c_str(), line_number, char_index);
+		return parsing_error(message.c_str(), line_number, char_index);
 	}
 	
 	void format_error(const error& err, get_character source, std::ostream& output) {
