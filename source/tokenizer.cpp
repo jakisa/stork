@@ -29,12 +29,10 @@ namespace stork {
 			return character_type::punct;
 		}
 		
-		void fetch_word(
-			push_back_stream& stream,
-			const reserved_token_callback& on_reserved_token,
-			const identifier_callback& on_identifier,
-			const number_callback& on_number
-		) {
+		token fetch_word(push_back_stream& stream) {
+			size_t line_number = stream.line_number();
+			size_t char_index = stream.char_index();
+
 			std::string word;
 			
 			int c = stream();
@@ -48,40 +46,52 @@ namespace stork {
 			
 			stream.push_back(c);
 			
-			if (std::optional<reserved_token> token  = get_keyword(word)) {
-				on_reserved_token(*token);
+			if (std::optional<reserved_token> t  = get_keyword(word)) {
+				return token(*t, line_number, char_index);
 			} else {
 				if (std::isdigit(word.front())) {
 					char* endptr;
-					double num = strtod(word.c_str(), &endptr);
+					double num = strtol(word.c_str(), &endptr, 0);
 					if (*endptr != 0) {
-						num = strtol(word.c_str(), &endptr, 0);
+						num = strtod(word.c_str(), &endptr);
 						if (*endptr != 0) {
-							throw_unexpected_error(std::string(1, char(*endptr)), stream.line_number(), stream.char_index());
+							size_t remaining = word.size() - (endptr - word.c_str());
+							throw_unexpected_error(
+								std::string(1, char(*endptr)),
+								stream.line_number(),
+								stream.char_index() - remaining
+							);
 						}
 					}
-					on_number(num);
+					return token(num, line_number, char_index);
 				} else {
-					on_identifier(word);
+					return token(identifier{std::move(word)}, line_number, char_index);
 				}
 			}
 		}
 		
-		void fetch_operator(push_back_stream& stream, const reserved_token_callback& on_reserved_token) {
-			if (std::optional<reserved_token> token = get_operator(stream)) {
-				on_reserved_token(*token);
+		token fetch_operator(push_back_stream& stream) {
+			size_t line_number = stream.line_number();
+			size_t char_index = stream.char_index();
+
+			if (std::optional<reserved_token> t = get_operator(stream)) {
+				return token(*t, line_number, char_index);
 			} else {
 				std::string unexpected;
-				size_t line_number = stream.line_number();
-				size_t char_index = stream.char_index();
+				size_t err_line_number = stream.line_number();
+				size_t err_char_index = stream.char_index();
 				for (int c = stream(); get_character_type(c) == character_type::punct; c = stream()) {
 					unexpected.push_back(char(c));
 				}
-				throw_unexpected_error(unexpected, line_number, char_index);
+				throw_unexpected_error(unexpected, err_line_number, err_char_index);
+				return token(eof(), line_number, char_index);
 			}
 		}
 		
-		void fetch_string(push_back_stream& stream, const string_callback& on_string) {
+		token fetch_string(push_back_stream& stream) {
+			size_t line_number = stream.line_number();
+			size_t char_index = stream.char_index();
+
 			int c = stream();
 			
 			std::string str;
@@ -118,8 +128,7 @@ namespace stork {
 								throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 								break;
 							case '"':
-								on_string(str);
-								return;
+								return token(std::move(str), line_number, char_index);
 							default:
 								str.push_back(c);
 						}
@@ -129,6 +138,7 @@ namespace stork {
 			} while (get_character_type(c) != character_type::eof);
 			
 			throw_parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
+			return token(eof(), line_number, char_index);
 		}
 		
 		void skip_line_comment(push_back_stream& stream) {
@@ -158,30 +168,23 @@ namespace stork {
 		}
 	}
 	
-	void tokenize(
-		const get_character& input,
-		const reserved_token_callback& on_reserved_token,
-		const identifier_callback& on_identifier,
-		const number_callback& on_number,
-		const string_callback& on_string
-	) {
-		push_back_stream stream(input);
+	token tokenize(push_back_stream& stream) {
 		while (true) {
+			size_t line_number = stream.line_number();
+			size_t char_index = stream.char_index();
 			int c = stream();
 			switch (get_character_type(c)) {
 				case character_type::eof:
-					return;
+					return {eof(), line_number, char_index};
 				case character_type::space:
 					continue;
 				case character_type::alphanum:
 					stream.push_back(c);
-					fetch_word(stream, on_reserved_token, on_identifier, on_number);
-					break;
+					return fetch_word(stream);
 				case character_type::punct:
 					switch (c) {
 						case '"':
-							fetch_string(stream, on_string);
-							break;
+							return fetch_string(stream);
 						case '/':
 						{
 							char c1 = stream();
@@ -198,7 +201,7 @@ namespace stork {
 						}
 						default:
 							stream.push_back(c);
-							fetch_operator(stream, on_reserved_token);
+							return fetch_operator(stream);
 					}
 					break;
 			}

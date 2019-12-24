@@ -12,21 +12,18 @@ int main() {
 		};
 	
 		try {
-			tokenize(
-				input,
-				[](reserved_token t) {
-					std::cout << "Token: " << t << std::endl;
-				},
-				[](std::string_view id) {
-					std::cout << "Identifier: " << id << std::endl;
-				},
-				[](double x) {
-					std::cout << "Number: " << x << std::endl;
-				},
-				[](std::string_view s) {
-					std::cout << "String: " << s << std::endl;
+			push_back_stream stream(input);
+			for (token t = tokenize(stream); !t.is_eof(); t = tokenize(stream)) {
+				if (t.is_reserved_token()) {
+					std::cout << "Reserved: " << t.get_reserved_token() << std::endl;
+				} else if (t.is_identifier()) {
+					std::cout << "Identifier: " << t.get_identifier() << std::endl;
+				} else if (t.is_number()) {
+					std::cout << "Number: " << t.get_number() << std::endl;
+				} else if (t.is_string()) {
+					std::cout << "String: " << t.get_string() << std::endl;
 				}
-			);
+			}
 		} catch(const error& err) {
 			fseek(fp, 0, SEEK_SET);
 			format_error(err, input, std::cerr);

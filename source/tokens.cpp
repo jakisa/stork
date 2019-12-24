@@ -169,4 +169,55 @@ namespace stork {
 		
 		return ret;
 	}
+	
+	token::token(token_value value, size_t line_number, size_t char_index) :
+		_value(std::move(value)),
+		_line_number(line_number),
+		_char_index(char_index)
+	{
+	}
+	
+	bool token::is_reserved_token() const {
+		return std::holds_alternative<reserved_token>(_value);
+	}
+	
+	bool token::is_identifier() const {
+		return std::holds_alternative<identifier>(_value);
+	}
+	
+	bool token::is_number() const {
+		return std::holds_alternative<double>(_value);
+	}
+	
+	bool token::is_string() const {
+		return std::holds_alternative<std::string>(_value);
+	}
+	
+	bool token::is_eof() const {
+		return std::holds_alternative<eof>(_value);
+	}
+	
+	reserved_token token::get_reserved_token() const {
+		return std::get<reserved_token>(_value);
+	}
+	
+	std::string_view token::get_identifier() const {
+		return std::get<identifier>(_value).name;
+	}
+	
+	double token::get_number() const {
+		return std::get<double>(_value);
+	}
+	
+	std::string_view token::get_string() const {
+		return std::get<std::string>(_value);
+	}
+	
+	size_t token::get_line_number() const {
+		return _line_number;
+	}
+
+	size_t token::get_char_index() const {
+		return _char_index;
+	}
 }
