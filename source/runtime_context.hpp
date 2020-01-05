@@ -5,17 +5,13 @@
 #include <deque>
 #include <stack>
 #include <string>
+#include "variable.hpp"
 
 namespace stork {
-	class runtime_context;
-
-	using function = std::function<void(runtime_context&)>;
-	using variable = std::variant<double, std::string, function>;
-
 	class runtime_context{
 	private:
-		std::vector<variable> _globals;
-		std::deque<variable> _stack;
+		std::vector<variable_ptr> _globals;
+		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
 	public:
 		runtime_context(size_t globals) :
@@ -25,19 +21,19 @@ namespace stork {
 			_retval_idx.push(0);
 		}
 	
-		variable& global(int idx) {
+		variable_ptr& global(int idx) {
 			return _globals[idx];
 		}
 
-		variable& retval() {
+		variable_ptr& retval() {
 			return _stack[_retval_idx.top()];
 		}
 
-		variable& local(int idx) {
+		variable_ptr& local(int idx) {
 			return _stack[_retval_idx.top() + idx];
 		}
 		
-		void push(variable v) {
+		void push(variable_ptr v) {
 			_stack.push_back(std::move(v));
 		}
 		
@@ -50,8 +46,8 @@ namespace stork {
 			_stack.resize(_retval_idx.top() + 1);
 		}
 		
-		variable end_function(size_t params) {
-			variable ret = std::move(_stack[_retval_idx.top()]);
+		variable_ptr end_function(size_t params) {
+			variable_ptr ret = std::move(_stack[_retval_idx.top()]);
 			_stack.resize(_retval_idx.top());
 			_retval_idx.pop();
 			return ret;
