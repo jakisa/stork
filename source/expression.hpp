@@ -6,30 +6,30 @@
 #include <string>
 
 namespace stork {
-	class expression {
-		expression(const expression&) = delete;
-		void operator=(const expression&) = delete;
+	class void_expression {
+		void_expression(const void_expression&) = delete;
+		void operator=(const void_expression&) = delete;
 	protected:
-		expression() {
+		void_expression() {
 		}
 	public:
-		virtual void evaluate(runtime_context& context) const = 0;
-		virtual ~expression(){
+		virtual void evaluate_void(runtime_context& context) const = 0;
+		virtual ~void_expression(){
 		}
 	};
 	
-	class string_expression : public expression {
+	class string_expression: public void_expression {
 	protected:
 		string_expression() {
 		}
 	public:
 		virtual std::string evaluate_string(runtime_context& context) const = 0;
-		void evaluate(runtime_context& context) const override {
+		void evaluate_void(runtime_context& context) const override {
 			evaluate_string(context);
 		}
 	};
 	
-	class lstring_expression : public string_expression {
+	class lstring_expression: public string_expression {
 	protected:
 		lstring_expression() {
 		}
@@ -40,7 +40,7 @@ namespace stork {
 		}
 	};
 	
-	class number_expression : public string_expression {
+	class number_expression: public string_expression {
 	protected:
 		number_expression() {
 		}
@@ -49,12 +49,12 @@ namespace stork {
 		std::string evaluate_string(runtime_context& context) const override {
 			return std::to_string(evaluate_number(context));
 		}
-		void evaluate(runtime_context& context) const override {
+		void evaluate_void(runtime_context& context) const override {
 			evaluate_number(context);
 		}
 	};
 	
-	class lnumber_expression : public number_expression {
+	class lnumber_expression: public number_expression {
 	protected:
 		lnumber_expression() {
 		}
@@ -63,6 +63,14 @@ namespace stork {
 		double evaluate_number(runtime_context& context) const override {
 			return evaluate_lnumber(context);
 		}
+	};
+	
+	class variable_expression: public void_expression {
+	protected:
+		variable_expression() {
+		}
+	public:
+		virtual variable_ptr evaluate_variable(runtime_context& context) const = 0;
 	};
 }
 

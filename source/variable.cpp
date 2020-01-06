@@ -17,10 +17,6 @@ namespace stork {
 	function_variable_ptr variable::as_function() {
 		return std::static_pointer_cast<function_variable>(shared_from_this());
 	}
-	
-	reference_variable_ptr variable::as_reference() {
-		return std::static_pointer_cast<reference_variable>(shared_from_this());
-	}
 
 	variable::~variable() {
 	}

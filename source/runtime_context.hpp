@@ -14,44 +14,21 @@ namespace stork {
 		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
 	public:
-		runtime_context(size_t globals) :
-			_globals(globals),
-			_stack(1)
-		{
-			_retval_idx.push(0);
-		}
+		runtime_context(size_t globals);
 	
-		variable_ptr& global(int idx) {
-			return _globals[idx];
-		}
+		variable_ptr& global(int idx);
 
-		variable_ptr& retval() {
-			return _stack[_retval_idx.top()];
-		}
+		variable_ptr& retval();
 
-		variable_ptr& local(int idx) {
-			return _stack[_retval_idx.top() + idx];
-		}
+		variable_ptr& local(int idx);
 		
-		void push(variable_ptr v) {
-			_stack.push_back(std::move(v));
-		}
+		void push(variable_ptr v);
 		
-		void end_scope(size_t scope_vars) {
-			_stack.resize(_stack.size() - scope_vars);
-		}
+		void end_scope(size_t scope_vars);
 		
-		void call() {
-			_retval_idx.push(_stack.size());
-			_stack.resize(_retval_idx.top() + 1);
-		}
+		void call();
 		
-		variable_ptr end_function(size_t params) {
-			variable_ptr ret = std::move(_stack[_retval_idx.top()]);
-			_stack.resize(_retval_idx.top());
-			_retval_idx.pop();
-			return ret;
-		}
+		variable_ptr end_function(size_t params);
 	};
 }
 
