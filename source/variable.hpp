@@ -9,12 +9,19 @@
 namespace stork {
 
 	class variable;
-	class number_variable;
-	class string_variable;
-	class array_variable;
-	class function_variable;
-
+	
 	using variable_ptr = std::shared_ptr<variable>;
+	
+	template <typename T>
+	class variable_impl;
+	
+	class runtime_context;
+	
+	using number_variable = variable_impl<double>;
+	using string_variable = variable_impl<std::string>;
+	using array_variable = variable_impl<std::deque<variable_ptr> >;
+	using function_variable = variable_impl<std::function<void(runtime_context&)> >;
+	
 	using number_variable_ptr = std::shared_ptr<number_variable>;
 	using string_variable_ptr = std::shared_ptr<string_variable>;
 	using array_variable_ptr = std::shared_ptr<array_variable>;
@@ -26,62 +33,87 @@ namespace stork {
 	using function_variable_cptr = std::shared_ptr<const function_variable>;
 	
 	class variable: public std::enable_shared_from_this<variable> {
+	private:
+		variable(const variable&) = delete;
+		void operator=(const variable&) = delete;
+	protected:
+		variable() = default;
 	public:
-		number_variable_ptr as_number();
-		string_variable_ptr as_string();
-		array_variable_ptr as_array();
-		function_variable_ptr as_function();
-		
-		number_variable_cptr as_number() const;
-		string_variable_cptr as_string() const;
-		array_variable_cptr as_array() const;
-		function_variable_cptr as_function() const;
-		
-		virtual ~variable();
+		virtual ~variable() = default;
 
 		virtual variable_ptr clone() const = 0;
 		virtual variable_ptr assign_from(const variable_ptr& rhs) = 0;
+		
+		template <typename T>
+		std::shared_ptr<variable_impl<T>> static_downcast() {
+			return std::static_pointer_cast<variable_impl<T>>(shared_from_this());
+		}
+		
+		template <typename T>
+		std::shared_ptr<variable_impl<const T>> static_downcast() const {
+			return std::static_pointer_cast<variable_impl<const T>>(shared_from_this());
+		}
+		
+		template <typename T>
+		T static_pointer_downcast() {
+			return std::static_pointer_cast<typename T::element_type::value_type>(shared_from_this());
+		}
+		
+		template <typename T>
+		T static_pointer_downcast() const {
+			return std::static_pointer_cast<const typename T::element_type::value_type>(shared_from_this());
+		}
 	};
 
-	class number_variable: public variable {
+	template<>
+	class variable_impl<double>: public variable {
 	public:
-		double value;
+		using value_type = double;
 		
-		number_variable(double value);
+		value_type value;
+		
+		variable_impl(value_type value);
 
 		variable_ptr clone() const override;
 		variable_ptr assign_from(const variable_ptr& rhs) override;
 		variable_ptr assign_from(double value);
 	};
-	
-	class string_variable: public variable {
-	public:
-		std::string value;
 
-		string_variable(std::string value);
+	template<>
+	class variable_impl<std::string>: public variable {
+	public:
+		using value_type = std::string;
+		
+		value_type value;
+
+		variable_impl(value_type value);
 
 		variable_ptr clone() const override;
 		variable_ptr assign_from(const variable_ptr& rhs) override;
 		variable_ptr assign_from(std::string value);
 	};
 	
-	class array_variable: public variable {
+	template<>
+	class variable_impl<std::deque<variable_ptr> >: public variable {
 	public:
-		std::deque<variable_ptr> value;
+		using value_type = std::deque<variable_ptr>;
+		
+		value_type value;
 
-		array_variable(std::deque<variable_ptr> value);
+		variable_impl(value_type value);
 
 		variable_ptr clone() const override;
 		variable_ptr assign_from(const variable_ptr& rhs) override;
 	};
 	
-	class runtime_context;
-	
-	class function_variable: public variable {
+	template<>
+	class variable_impl<std::function<void(runtime_context&)> >: public variable {
 	public:
-		std::function<void(runtime_context&)> value;
+		using value_type = std::function<void(runtime_context&)>;
+		
+		value_type value;
 
-		function_variable(std::function<void(runtime_context&)> value);
+		variable_impl(value_type value);
 
 		variable_ptr clone() const override;
 		variable_ptr assign_from(const variable_ptr& rhs) override;

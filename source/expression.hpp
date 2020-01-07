@@ -6,42 +6,25 @@
 #include <string>
 
 namespace stork {
-	class void_expression {
-		void_expression(const void_expression&) = delete;
-		void operator=(const void_expression&) = delete;
+	template <class T>
+	class expression {
+		expression(const expression&) = delete;
+		void operator=(const expression&) = delete;
 	protected:
-		void_expression();
+		expression() = default;
 	public:
-		virtual void evaluate_void(runtime_context& context) const = 0;
-		virtual ~void_expression();
+		using ptr = std::unique_ptr<const expression>;
+		
+		virtual T evaluate(runtime_context& context) const = 0;
+		virtual ~expression() = default;
 	};
 	
-	using void_expression_ptr = std::unique_ptr<void_expression>;
-	
-	class string_expression: public virtual void_expression {
-	protected:
-		string_expression();
-	public:
-		virtual std::string evaluate_string(runtime_context& context) const = 0;
-		void evaluate_void(runtime_context& context) const override;
-	};
-	
-	using string_expression_ptr = std::unique_ptr<string_expression>;
-	
-	class number_expression: public string_expression {
-	protected:
-		number_expression();
-	public:
-		virtual double evaluate_number(runtime_context& context) const = 0;
-		std::string evaluate_string(runtime_context& context) const override;
-		void evaluate_void(runtime_context& context) const override;
-	};
-	
-	using number_expression_ptr = std::unique_ptr<number_expression>;
-
-	void evaluate(const void_expression_ptr& expr, runtime_context& context);
-	double evaluate(const number_expression_ptr& expr, runtime_context& context);
-	std::string evaluate(const string_expression_ptr& expr, runtime_context& context);
+	using void_expression = expression<void>;
+	using number_expression = expression<double>;
+	using string_expression = expression<std::string>;
+	using variable_expression = expression<variable_ptr>;
+	using string_variable_expression = expression<string_variable_ptr>;
+	using number_variable_expression = expression<number_variable_ptr>;
 }
 
 #endif /* expression_hpp */

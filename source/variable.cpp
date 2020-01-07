@@ -2,42 +2,7 @@
 
 namespace stork {
 
-	number_variable_ptr variable::as_number() {
-		return std::static_pointer_cast<number_variable>(shared_from_this());
-	}
-	
-	string_variable_ptr variable::as_string() {
-		return std::static_pointer_cast<string_variable>(shared_from_this());
-	}
-	
-	array_variable_ptr variable::as_array() {
-		return std::static_pointer_cast<array_variable>(shared_from_this());
-	}
-	
-	function_variable_ptr variable::as_function() {
-		return std::static_pointer_cast<function_variable>(shared_from_this());
-	}
-	
-	number_variable_cptr variable::as_number() const{
-		return std::static_pointer_cast<const number_variable>(shared_from_this());
-	}
-	
-	string_variable_cptr variable::as_string() const{
-		return std::static_pointer_cast<const string_variable>(shared_from_this());
-	}
-	
-	array_variable_cptr variable::as_array() const{
-		return std::static_pointer_cast<const array_variable>(shared_from_this());
-	}
-	
-	function_variable_cptr variable::as_function() const{
-		return std::static_pointer_cast<const function_variable>(shared_from_this());
-	}
-
-	variable::~variable() {
-	}
-	
-	number_variable::number_variable(double value) :
+	number_variable::variable_impl(value_type value) :
 		value(value)
 	{
 	}
@@ -47,15 +12,15 @@ namespace stork {
 	}
 	
 	variable_ptr number_variable::assign_from(const variable_ptr& rhs) {
-		return assign_from(rhs->as_number()->value);
+		return assign_from(rhs->static_downcast<value_type>()->value);
 	}
 	
-	variable_ptr number_variable::assign_from(double value) {
+	variable_ptr number_variable::assign_from(value_type value) {
 		this->value = value;
 		return shared_from_this();
 	}
 	
-	string_variable::string_variable(std::string value) :
+	string_variable::variable_impl(std::string value) :
 		value(std::move(value))
 	{
 	}
@@ -65,7 +30,7 @@ namespace stork {
 	}
 	
 	variable_ptr string_variable::assign_from(const variable_ptr& rhs) {
-		return assign_from(rhs->as_string()->value);
+		return assign_from(rhs->static_downcast<value_type>()->value);
 	};
 	
 	variable_ptr string_variable::assign_from(std::string value) {
@@ -73,13 +38,13 @@ namespace stork {
 		return shared_from_this();
 	};
 	
-	array_variable::array_variable(std::deque<variable_ptr> value) :
+	array_variable::variable_impl(value_type value) :
 		value(std::move(value))
 	{
 	}
 
 	variable_ptr array_variable::clone() const {
-		std::deque<variable_ptr> cloned_value;
+		value_type cloned_value;
 		for (const variable_ptr& v : value) {
 			cloned_value.push_back(v->clone());
 		}
@@ -89,14 +54,14 @@ namespace stork {
 	variable_ptr array_variable::assign_from(const variable_ptr& rhs) {
 		value.clear();
 		
-		for (const variable_ptr& v : rhs->as_array()->value) {
+		for (const variable_ptr& v : rhs->static_downcast<value_type>()->value) {
 			value.push_back(v->clone());
 		}
 		
 		return shared_from_this();
 	}
 	
-	function_variable::function_variable(std::function<void(runtime_context&)> value) :
+	function_variable::variable_impl(value_type value) :
 		value(std::move(value))
 	{
 	}
@@ -106,7 +71,7 @@ namespace stork {
 	}
 	
 	variable_ptr function_variable::assign_from(const variable_ptr& rhs) {
-		value = rhs->as_function()->value;
+		value = rhs->static_downcast<value_type>()->value;
 		
 		return shared_from_this();
 	}
