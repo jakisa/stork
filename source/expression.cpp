@@ -2,68 +2,40 @@
 
 namespace stork {
 	namespace {
-		template<class VariablePtr>
-		struct variable_traits {
-			using rvalue = VariablePtr;
+		template<typename To, typename From>
+		struct converter {
+			const To& operator()(const From& from) const {
+				return from->value;
+			}
 		};
 		
-		template<>
-		struct variable_traits<string_variable_ptr> {
-			using rvalue = std::string;
+		template<typename T>
+		struct converter<T, T> {
+			const T& operator()(const T& t) const {
+				return t;
+			}
 		};
 		
-		template<>
-		struct variable_traits<number_variable_ptr> {
-			using rvalue = double;
+		template<typename From>
+		struct converter<void, From> {
+			void operator()(const From&) const {
+			}
 		};
+		
+		template<typename From>
+		struct converter<string, From> {
+			string operator()(const From& from) const {
+				return to_string(from);
+			}
+		};
+		
+		template<typename To, typename From>
+		To convert(From&& from) {
+			return converter<To, From>()(std::forward(from));
+		}
 	
-		template<class ExpressionPtr>
-		class void_expression_wrapper: public void_expression {
-		private:
-			ExpressionPtr _expr1;
-		public:
-			void_expression_wrapper(ExpressionPtr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			void evaluate(runtime_context& context) const override {
-				_expr1->evaluate(context);
-			}
-		};
-		
-		class string_expression_wrapper: public string_expression {
-		private:
-			number_expression::ptr _expr1;
-		public:
-			string_expression_wrapper(number_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			std::string evaluate(runtime_context& context) const override {
-				return std::to_string(_expr1->evaluate(context));
-			}
-		};
-		
-		template<typename Value>
-		class unbox_epresssion: public expression<Value> {
-		private:
-			using boxed_expression_ptr = typename expression<typename variable_impl<Value>::ptr>::ptr;
-			boxed_expression_ptr _expr1;
-		public:
-			unbox_epresssion(boxed_expression_ptr expr1)
-				: _expr1(std::move(expr1))
-			{
-			}
-			
-			Value evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context).value;
-			}
-		};
-
-		template<class VariablePtr>
-		class global_variable_expression: public expression<VariablePtr> {
+		template<typename T, class V>
+		class global_variable_expression: public expression<T> {
 		private:
 			int _idx;
 		public:
@@ -72,13 +44,15 @@ namespace stork {
 			{
 			}
 			
-			VariablePtr evaluate(runtime_context& context) const override {
-				return context.global(_idx)->template static_pointer_downcast<VariablePtr>();
+			T evaluate(runtime_context& context) const override {
+				return convert<T>(
+					std::move(context.global(_idx)->template static_pointer_downcast<V>())
+				);
 			}
 		};
-
-		template<class VariablePtr>
-		class local_variable_expression: public expression<VariablePtr> {
+		
+		template<typename T, class V>
+		class local_variable_expression: public expression<T> {
 		private:
 			int _idx;
 		public:
@@ -87,341 +61,187 @@ namespace stork {
 			{
 			}
 			
-			VariablePtr evaluate(runtime_context& context) const override {
-				return context.global(_idx)->template static_pointer_downcast<VariablePtr>();
+			T evaluate(runtime_context& context) const override {
+				return convert<T>(
+					std::move(context.local(_idx)->template static_pointer_downcast<V>())
+				);
 			}
 		};
 		
-		class preinc_expression: public number_variable_expression {
+		template<typename T, class C>
+		class constant_expression: public expression<T> {
 		private:
-			number_variable_expression::ptr _expr1;
+			T _c;
 		public:
-			preinc_expression(number_variable_expression::ptr expr1) :
-				_expr1(std::move(expr1))
+			constant_expression(C c) :
+				_c(convert<T>(std::move(c)))
 			{
 			}
-		
-			number_variable_ptr evaluate(runtime_context& context) const override {
-				number_variable_ptr ret = _expr1->evaluate(context);
-				++ret->value;
-				return ret;
+			
+			T evaluate(runtime_context& context) const override {
+				return _c;
 			}
 		};
 		
-		class predec_expression: public number_variable_expression {
+		template<typename R, typename T1, class O>
+		class unary_expression: public expression<R> {
 		private:
-			number_variable_expression::ptr _expr1;
+			using Expr1 = typename expression<T1>::ptr;
+			Expr1 _expr1;
 		public:
-			predec_expression(number_variable_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-		
-			number_variable_ptr evaluate(runtime_context& context) const override {
-				number_variable_ptr ret = _expr1->evaluate(context);
-				--ret->value;
-				return ret;
-			}
-		};
-		
-		class postinc_expression: public number_expression {
-		private:
-			number_variable_expression::ptr _expr1;
-		public:
-			postinc_expression(number_variable_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-		
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context)->value++;
-			}
-		};
-	
-		class postdec_expression: public number_expression {
-		private:
-			number_variable_expression::ptr _expr1;
-		public:
-			postdec_expression(number_variable_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-		
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context)->value--;
-			}
-		};
-		
-		class positive_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-		public:
-			positive_expression(number_expression::ptr expr1) :
+			unary_expression(Expr1 expr1) :
 				_expr1(std::move(expr1))
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context);
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(O()(_expr1->evaluate(context)));
 			}
 		};
 		
-		class negative_expression: public number_expression {
+		template<typename R, typename T1, typename T2, class O>
+		class binary_expression: public expression<R> {
 		private:
-			number_expression::ptr _expr1;
+			using Expr1 = typename expression<T1>::ptr;
+			using Expr2 = typename expression<T1>::ptr;
+			Expr1 _expr1;
+			Expr2 _expr2;
 		public:
-			negative_expression(number_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return -_expr1->evaluate(context);
-			}
-		};
-		
-		template<class ValueT>
-		class add_expression: public expression<ValueT> {
-		private:
-			using expression_ptr = typename expression<ValueT>::ptr;
-			expression_ptr _expr1;
-			expression_ptr _expr2;
-		public:
-			add_expression(expression_ptr expr1, expression_ptr expr2) :
+			binary_expression(Expr1 expr1, Expr2 expr2) :
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2))
 			{
 			}
 			
-			ValueT evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) + _expr2->evaluate(context);
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(O()(_expr1->evaluate(context), _expr2->evaluate(context)));
 			}
 		};
+
+#define UNARY_EXPRESSION(name, RT, T1, code)\
+		struct name {\
+			RT operator()(T1 t1) {\
+				code;\
+			}\
+		};\
+		template<typename R>\
+		using name##_expression = unary_expression<R, T1, name>;
 		
-		class sub_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			sub_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
+		UNARY_EXPRESSION(preinc, number_variable_ptr, number_variable_ptr,
+			++t1->value;
+			return t1;
+		);
+		
+		UNARY_EXPRESSION(predec, number_variable_ptr, number_variable_ptr,
+			--t1->value;
+			return t1;
+		);
+
+		UNARY_EXPRESSION(postinc, number, number_variable_ptr,
+			return t1->value++;
+		);
+		
+		UNARY_EXPRESSION(postdec, number, number_variable_ptr,
+			return t1->value--;
+		);
+		
+		UNARY_EXPRESSION(positive, number, number,
+			return t1;
+		);
+		
+		UNARY_EXPRESSION(negative, number, number,
+			return -t1;
+		);
+		
+		UNARY_EXPRESSION(bnot, number, number,
+			return ~int(t1);
+		);
+		
+		UNARY_EXPRESSION(lnot, number, number,
+			return !t1;
+		);
+
+#undef UNARY_EXPRESSION
+
+#define BINARY_EXPRESSION(name, RT, T1, T2, code)\
+		struct name {\
+			RT operator()(T1 t1, T2 t2) {\
+				code;\
+			}\
+		};\
+		template<typename R>\
+		using name##_expression = binary_expression<R, T1, T2, name>;
+
+		BINARY_EXPRESSION(add, number, number, number,
+			return t1 + t2;
+		);
+		
+		BINARY_EXPRESSION(sub, number, number, number,
+			return t1 - t2;
+		);
+		
+		BINARY_EXPRESSION(mul, number, number, number,
+			return t1 * t2;
+		);
+		
+		BINARY_EXPRESSION(div, number, number, number,
+			return t1 / t2;
+		);
+		
+		BINARY_EXPRESSION(idiv, number, number, number,
+			return int(t1 / t2);
+		);
+		
+		BINARY_EXPRESSION(mod, number, number, number,
+			return t1 - t2 * int(t1/t2);
+		);
+		
+		BINARY_EXPRESSION(band, number, number, number,
+			return int(t1) & int(t2);
+		);
+		
+		BINARY_EXPRESSION(bor, number, number, number,
+			return int(t1) | int(t2);
+		);
+		
+		BINARY_EXPRESSION(bxor, number, number, number,
+			return int(t1) ^ int(t2);
+		);
+		
+		BINARY_EXPRESSION(sl, number, number, number,
+			return int(t1) << int(t2);
+		);
+		
+		BINARY_EXPRESSION(sr, number, number, number,
+			return int(t1) >> int(t2);
+		);
+		
+		BINARY_EXPRESSION(concat, string, string, string,
+			return t1 + t2;
+		);
+#undef BINARY_EXPRESSION
+
+		/*
+		struct assign {
+			number_variable_ptr operator()(number_variable_ptr t1, number t2) const {
+				t1->value = t2;
+				return t1;
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) - _expr2->evaluate(context);
-			}
-		};
-		
-		class mul_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			mul_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
+			string_variable_ptr operator()(string_variable_ptr t1, string t2) const {
+				t1->value = std::move(t2);
+				return t1;
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) * _expr2->evaluate(context);
+			function_variable_ptr operator()(function_variable_ptr t1, function_variable_ptr t2) const {
+				t1->value = t2->value;
+				return t1;
 			}
 		};
-		
-		class div_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			div_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) / _expr2->evaluate(context);
-			}
-		};
-		
-		class idiv_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			idiv_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context) / _expr2->evaluate(context));
-			}
-		};
-		
-		class mod_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			mod_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				double rslt1 = _expr1->evaluate(context);
-				double rslt2 = _expr2->evaluate(context);
-				return rslt1 - rslt1 * int(rslt1/rslt2);
-			}
-		};
-		
-		class bitnot_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-		public:
-			bitnot_expression(number_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const {
-				return ~int(_expr1->evaluate(context));
-			}
-		};
-		
-		class bitand_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			bitand_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context)) & int(_expr2->evaluate(context));
-			}
-		};
-		
-		class bitor_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			bitor_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context)) | int(_expr2->evaluate(context));
-			}
-		};
-		
-		class bitxor_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			bitxor_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context)) ^ int(_expr2->evaluate(context));
-			}
-		};
-		
-		class bitsl_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			bitsl_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context)) << int(_expr2->evaluate(context));
-			}
-		};
-		
-		class bitsr_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			bitsr_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return int(_expr1->evaluate(context)) >> int(_expr2->evaluate(context));
-			}
-		};
-		
-		class not_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-		public:
-			not_expression(number_expression::ptr expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const {
-				return !_expr1->evaluate(context);
-			}
-		};
-		
-		class and_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			and_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) && _expr2->evaluate(context);
-			}
-		};
-		
-		class or_expression: public number_expression {
-		private:
-			number_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-		public:
-			or_expression(number_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) && _expr2->evaluate(context);
-			}
-		};
-		
-		template<class VariablePtr>
-		class assign_expression: public expression<VariablePtr> {
+		*/
+		/*
+		template<typename Ret, class VariablePtr>
+		class assign_expression: public expression<Ret> {
 		private:
 			using lvalue_expression_ptr = typename expression<VariablePtr>::ptr;
 			using rvalue_expression_ptr = expression<typename variable_traits<VariablePtr>::rvalue>;
@@ -434,13 +254,13 @@ namespace stork {
 			{
 			}
 			
-			VariablePtr evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context)->assign_from(_expr2->evaluate(context));
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context)->assign_from(_expr2->evaluate(context)));
 			}
 		};
 		
-		template<class VariablePtr>
-		class add_assign_expression: public expression<VariablePtr> {
+		template<typename Ret, class VariablePtr>
+		class add_assign_expression: public expression<Ret> {
 		private:
 			using lvalue_expression_ptr = typename expression<VariablePtr>::ptr;
 			using rvalue_expression_ptr = expression<typename variable_traits<VariablePtr>::rvalue>;
@@ -453,14 +273,15 @@ namespace stork {
 			{
 			}
 			
-			VariablePtr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				VariablePtr rslt1 = _expr1->evaluate(context);
 				rslt1->value += _expr2->evaluate(context);
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class sub_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class sub_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -471,14 +292,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value -= _expr2->evaluate(context);
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class mul_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class mul_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -489,14 +311,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value *= _expr2->evaluate(context);
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class div_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class div_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -507,14 +330,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value /= _expr2->evaluate(context);
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class idiv_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class idiv_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -525,14 +349,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value/_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class mod_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class mod_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -543,15 +368,16 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				double rslt2 = _expr2->evaluate(context);
+				number rslt2 = _expr2->evaluate(context);
 				rslt1->value -= rslt2 * int(rslt1->value/rslt2);
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class and_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class and_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -562,14 +388,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value) & int(_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		class or_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class or_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -580,14 +407,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value) | int(_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 
-		class xor_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class xor_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -598,14 +426,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value) ^ int(_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 
-		class sl_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class sl_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -616,14 +445,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value) << int(_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 
-		class sr_assign_expression: public number_variable_expression {
+		template<typename Ret>
+		class sr_assign_expression: public expression<Ret> {
 		private:
 			number_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
@@ -634,15 +464,15 @@ namespace stork {
 			{
 			}
 			
-			number_variable_ptr evaluate(runtime_context& context) const override {
+			Ret evaluate(runtime_context& context) const override {
 				number_variable_ptr rslt1 = _expr1->evaluate(context);
 				rslt1->value = int(rslt1->value) >> int(_expr2->evaluate(context));
-				return rslt1;
+				return convert<Ret>(std::move(rslt1));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class eq_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class eq_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -653,13 +483,13 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) == _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) == _expr2->evaluate(context));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class ne_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class ne_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -670,13 +500,13 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) != _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) != _expr2->evaluate(context));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class lt_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class lt_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -687,13 +517,13 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) < _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) < _expr2->evaluate(context));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class gt_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class gt_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -704,13 +534,13 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) > _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) > _expr2->evaluate(context));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class le_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class le_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -721,13 +551,13 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) <= _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) <= _expr2->evaluate(context));
 			}
 		};
 		
-		template <class ExpressionPtr>
-		class ge_expression: public number_expression {
+		template <typename Ret, class ExpressionPtr>
+		class ge_expression: public expression<Ret> {
 		private:
 			ExpressionPtr _expr1;
 			ExpressionPtr _expr2;
@@ -738,8 +568,8 @@ namespace stork {
 			{
 			}
 			
-			double evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) >= _expr2->evaluate(context);
+			Ret evaluate(runtime_context& context) const override {
+				return convert<Ret>(_expr1->evaluate(context) >= _expr2->evaluate(context));
 			}
 		};
 		
@@ -766,27 +596,77 @@ namespace stork {
 			}
 		};
 		
-		template <typename T>
-		class comma_expression: public expression<T> {
+		template <typename Ret, typename S, typename T>
+		class comma_expression: public expression<Ret> {
 		private:
-			void_expression::ptr _expr1;
-			typename expression<T>::ptr _expr2;
+			typename expression<T>::ptr _expr1;
+			typename expression<S>::ptr _expr2;
 		public:
-			comma_expression(void_expression::ptr expr1, typename expression<T>::ptr expr2) :
+			comma_expression(typename expression<T>::ptr expr1, typename expression<S>::ptr expr2) :
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			Ret evaluate(runtime_context& context) const override {
+				return _expr1->evaluate(context), convert<Ret>(_expr2->evaluate(context));
+			}
+		};
+		
+		template <typename T>
+		class array_expression: public expression<T> {
+		private:
+			array_variable_expression::ptr _expr1;
+			number_variable_expression::ptr _expr2;
+		public:
+			array_expression(array_variable_expression::ptr expr1, number_variable_expression::ptr expr2) :
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2))
 			{
 			}
 			
 			T evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context), _expr2->evaluate(context);
+				return _expr1->evaluate(context)->value[_expr2->evaluate(context)];
+			}
+		};
+		
+		*/
+		template<typename R>
+		class land_expression: public expression<R> {
+		private:
+			expression<number>::ptr _expr1;
+			expression<number>::ptr _expr2;
+		public:
+			land_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr1->evaluate(context) && _expr2->evaluate(context));
+			}
+		};
+		
+		template<typename R>
+		class lor_expression: public expression<R> {
+		private:
+			expression<number>::ptr _expr1;
+			expression<number>::ptr _expr2;
+		public:
+			lor_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr1->evaluate(context) || _expr2->evaluate(context));
 			}
 		};
 	}
-	/*
+/*
 	{"(", reserved_token::open_round},
 	{")", reserved_token::close_round},
-	
-	{"[", reserved_token::open_square},
-	{"]", reserved_token::close_square},*/
+*/
 }

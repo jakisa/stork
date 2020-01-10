@@ -17,10 +17,15 @@ namespace stork {
 	
 	class runtime_context;
 	
-	using number_variable = variable_impl<double>;
-	using string_variable = variable_impl<std::string>;
-	using array_variable = variable_impl<std::deque<variable_ptr> >;
-	using function_variable = variable_impl<std::function<void(runtime_context&)> >;
+	using number = double;
+	using string = std::string;
+	using array = std::deque<variable_ptr>;
+	using function = std::shared_ptr<std::function<void(runtime_context&)> >;
+	
+	using number_variable = variable_impl<number>;
+	using string_variable = variable_impl<string>;
+	using array_variable = variable_impl<array>;
+	using function_variable = variable_impl<function>;
 	
 	using number_variable_ptr = std::shared_ptr<number_variable>;
 	using string_variable_ptr = std::shared_ptr<string_variable>;
@@ -30,7 +35,10 @@ namespace stork {
 	using number_variable_cptr = std::shared_ptr<const number_variable>;
 	using string_variable_cptr = std::shared_ptr<const string_variable>;
 	using array_variable_cptr = std::shared_ptr<const array_variable>;
-	using function_variable_cptr = std::shared_ptr<const function_variable>;
+	using function_variable_cptr = std::shared_ptr<function>;
+	
+	string to_string(number n);
+	string to_string(number_variable_cptr v);
 	
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
@@ -66,9 +74,9 @@ namespace stork {
 	};
 
 	template<>
-	class variable_impl<double>: public variable {
+	class variable_impl<number>: public variable {
 	public:
-		using value_type = double;
+		using value_type = number;
 		
 		value_type value;
 		
@@ -80,9 +88,9 @@ namespace stork {
 	};
 
 	template<>
-	class variable_impl<std::string>: public variable {
+	class variable_impl<string>: public variable {
 	public:
-		using value_type = std::string;
+		using value_type = string;
 		
 		value_type value;
 
@@ -94,9 +102,9 @@ namespace stork {
 	};
 	
 	template<>
-	class variable_impl<std::deque<variable_ptr> >: public variable {
+	class variable_impl<array>: public variable {
 	public:
-		using value_type = std::deque<variable_ptr>;
+		using value_type = array;
 		
 		value_type value;
 
@@ -107,9 +115,9 @@ namespace stork {
 	};
 	
 	template<>
-	class variable_impl<std::function<void(runtime_context&)> >: public variable {
+	class variable_impl<function>: public variable {
 	public:
-		using value_type = std::function<void(runtime_context&)>;
+		using value_type = function;
 		
 		value_type value;
 

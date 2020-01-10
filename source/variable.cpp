@@ -2,6 +2,14 @@
 
 namespace stork {
 
+	string to_string(number n) {
+		return std::to_string(n);
+	}
+	
+	string to_string(number_variable_cptr v) {
+		return std::to_string(v->value);
+	}
+
 	number_variable::variable_impl(value_type value) :
 		value(value)
 	{
@@ -33,7 +41,7 @@ namespace stork {
 		return assign_from(rhs->static_downcast<value_type>()->value);
 	};
 	
-	variable_ptr string_variable::assign_from(std::string value) {
+	variable_ptr string_variable::assign_from(value_type value) {
 		this->value = std::move(value);
 		return shared_from_this();
 	};
