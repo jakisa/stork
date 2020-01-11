@@ -2,6 +2,21 @@
 
 namespace stork {
 	namespace {
+		template<typename T>
+		struct variable_traits {
+			using rvalue = T;
+		};
+		
+		template<>
+		struct variable_traits<number_variable_ptr> {
+			using rvalue = number;
+		};
+		
+		template<>
+		struct variable_traits<string_variable_ptr> {
+			using rvalue = string;
+		};
+	
 		template<typename To, typename From>
 		struct converter {
 			const To& operator()(const From& from) const {
@@ -31,10 +46,33 @@ namespace stork {
 		
 		template<typename To, typename From>
 		To convert(From&& from) {
-			return converter<To, From>()(std::forward(from));
+			return converter<To, From>()(std::forward<From>(from));
+		}
+		
+		number_variable_ptr assign(number_variable_ptr n1, number n2) {
+			n1->value = n2;
+			return n1;
+		}
+		
+		string_variable_ptr assign(string_variable_ptr s1, string s2) {
+			s1->value = std::move(s2);
+			return s1;
+		}
+		
+		function_variable_ptr assign(function_variable_ptr t1, function_variable_ptr t2) {
+			t1->value = t2->value;
+			return t1;
+		}
+		
+		number lt(number n1, number n2) {
+			return n1 < n2;
+		}
+		
+		number lt(string s1, string s2) {
+			return *s1 < *s2;
 		}
 	
-		template<typename T, class V>
+		template<typename T>
 		class global_variable_expression: public expression<T> {
 		private:
 			int _idx;
@@ -45,13 +83,11 @@ namespace stork {
 			}
 			
 			T evaluate(runtime_context& context) const override {
-				return convert<T>(
-					std::move(context.global(_idx)->template static_pointer_downcast<V>())
-				);
+				return context.global(_idx)->template static_pointer_downcast<T>();
 			}
 		};
 		
-		template<typename T, class V>
+		template<typename T>
 		class local_variable_expression: public expression<T> {
 		private:
 			int _idx;
@@ -62,23 +98,21 @@ namespace stork {
 			}
 			
 			T evaluate(runtime_context& context) const override {
-				return convert<T>(
-					std::move(context.local(_idx)->template static_pointer_downcast<V>())
-				);
+				return context.local(_idx)->template static_pointer_downcast<T>();
 			}
 		};
 		
-		template<typename T, class C>
-		class constant_expression: public expression<T> {
+		template<typename T>
+		class constant_expression: public expression<const T&> {
 		private:
 			T _c;
 		public:
-			constant_expression(C c) :
-				_c(convert<T>(std::move(c)))
+			constant_expression(T c) :
+				_c(std::move(c))
 			{
 			}
 			
-			T evaluate(runtime_context& context) const override {
+			const T& evaluate(runtime_context& context) const override {
 				return _c;
 			}
 		};
@@ -103,7 +137,7 @@ namespace stork {
 		class binary_expression: public expression<R> {
 		private:
 			using Expr1 = typename expression<T1>::ptr;
-			using Expr2 = typename expression<T1>::ptr;
+			using Expr2 = typename expression<T2>::ptr;
 			Expr1 _expr1;
 			Expr2 _expr2;
 		public:
@@ -118,111 +152,185 @@ namespace stork {
 			}
 		};
 
-#define UNARY_EXPRESSION(name, RT, T1, code)\
-		struct name {\
-			RT operator()(T1 t1) {\
+#define UNARY_EXPRESSION(name, code)\
+		struct name##_op {\
+			template <typename T1> \
+			auto operator()(T1 t1) {\
 				code;\
 			}\
 		};\
-		template<typename R>\
-		using name##_expression = unary_expression<R, T1, name>;
+		template<typename R, typename T1>\
+		using name##_expression = unary_expression<R, T1, name##_op>;
 		
-		UNARY_EXPRESSION(preinc, number_variable_ptr, number_variable_ptr,
+		UNARY_EXPRESSION(preinc,
 			++t1->value;
 			return t1;
 		);
 		
-		UNARY_EXPRESSION(predec, number_variable_ptr, number_variable_ptr,
+		UNARY_EXPRESSION(predec,
 			--t1->value;
 			return t1;
 		);
 
-		UNARY_EXPRESSION(postinc, number, number_variable_ptr,
-			return t1->value++;
-		);
+		UNARY_EXPRESSION(postinc, return t1->value++);
 		
-		UNARY_EXPRESSION(postdec, number, number_variable_ptr,
-			return t1->value--;
-		);
+		UNARY_EXPRESSION(postdec, return t1->value--);
 		
-		UNARY_EXPRESSION(positive, number, number,
-			return t1;
-		);
+		UNARY_EXPRESSION(positive, return t1);
 		
-		UNARY_EXPRESSION(negative, number, number,
-			return -t1;
-		);
+		UNARY_EXPRESSION(negative, return -t1);
 		
-		UNARY_EXPRESSION(bnot, number, number,
-			return ~int(t1);
-		);
+		UNARY_EXPRESSION(bnot, return ~int(t1));
 		
-		UNARY_EXPRESSION(lnot, number, number,
-			return !t1;
-		);
+		UNARY_EXPRESSION(lnot, return !t1);
 
 #undef UNARY_EXPRESSION
 
-#define BINARY_EXPRESSION(name, RT, T1, T2, code)\
-		struct name {\
-			RT operator()(T1 t1, T2 t2) {\
+#define BINARY_EXPRESSION(name, code)\
+		struct name##_op {\
+			template <typename T1, typename T2>\
+			auto operator()(T1 t1, T2 t2) {\
 				code;\
 			}\
 		};\
-		template<typename R>\
-		using name##_expression = binary_expression<R, T1, T2, name>;
+		template<typename R, typename T1, typename T2>\
+		using name##_expression = binary_expression<R, T1, T2, name##_op>;
 
-		BINARY_EXPRESSION(add, number, number, number,
-			return t1 + t2;
+		BINARY_EXPRESSION(add, return t1 + t2);
+		
+		BINARY_EXPRESSION(sub, return t1 - t2);
+
+		BINARY_EXPRESSION(mul, return t1 * t2);
+
+		BINARY_EXPRESSION(div, return t1 / t2);
+
+		BINARY_EXPRESSION(idiv, return int(t1 / t2));
+
+		BINARY_EXPRESSION(mod, return t1 - t2 * int(t1/t2));
+
+		BINARY_EXPRESSION(band, return int(t1) & int(t2));
+
+		BINARY_EXPRESSION(bor, return int(t1) | int(t2));
+
+		BINARY_EXPRESSION(bxor, return int(t1) ^ int(t2));
+
+		BINARY_EXPRESSION(sl, return int(t1) << int(t2));
+
+		BINARY_EXPRESSION(sr, return int(t1) >> int(t2));
+
+		BINARY_EXPRESSION(concat, return std::make_shared<std::string>(*t1 + *t2));
+		
+		BINARY_EXPRESSION(add_assign,
+			t1->value += t2;
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(sub, number, number, number,
-			return t1 - t2;
+		BINARY_EXPRESSION(sub_assign,
+			t1->value -= t2;
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(mul, number, number, number,
-			return t1 * t2;
+		BINARY_EXPRESSION(mul_assign,
+			t1->value *= t2;
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(div, number, number, number,
-			return t1 / t2;
+		BINARY_EXPRESSION(div_assign,
+			t1->value /= t2;
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(idiv, number, number, number,
-			return int(t1 / t2);
+		BINARY_EXPRESSION(idiv_assign,
+			t1->value = int(t1->value / t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(mod, number, number, number,
-			return t1 - t2 * int(t1/t2);
+		BINARY_EXPRESSION(mod_assign,
+			t1->value = t1->value - t2 * int(t1->value/t2);;
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(band, number, number, number,
-			return int(t1) & int(t2);
+		BINARY_EXPRESSION(band_assign,
+			t1->value = int(t1->value) & int(t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(bor, number, number, number,
-			return int(t1) | int(t2);
+		BINARY_EXPRESSION(bor_assign,
+			t1->value = int(t1->value) | int(t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(bxor, number, number, number,
-			return int(t1) ^ int(t2);
+		BINARY_EXPRESSION(bxor_assign,
+			t1->value = int(t1->value) ^ int(t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(sl, number, number, number,
-			return int(t1) << int(t2);
+		BINARY_EXPRESSION(bsl_assign,
+			t1->value = int(t1->value) << int(t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(sr, number, number, number,
-			return int(t1) >> int(t2);
+		BINARY_EXPRESSION(bsr_assign,
+			t1->value = int(t1->value) >> int(t2);
+			return t1;
+		);
+
+		BINARY_EXPRESSION(concat_assign,
+			t1->value = std::make_shared<std::string>(*t1->value + *t2);
+			return t1;
 		);
 		
-		BINARY_EXPRESSION(concat, string, string, string,
-			return t1 + t2;
-		);
+		BINARY_EXPRESSION(assign, return assign(t1, t2));
+		
+		BINARY_EXPRESSION(eq, return !lt(t1, t2) && !lt(t2, t1));
+		
+		BINARY_EXPRESSION(ne, return lt(t1, t2) || lt(t2, t1));
+		
+		BINARY_EXPRESSION(lt, return lt(t1, t2));
+		
+		BINARY_EXPRESSION(gt, return lt(t2, t1));
+		
+		BINARY_EXPRESSION(le, return !lt(t2, t1));
+		
+		BINARY_EXPRESSION(ge, return !lt(t1, t2));
+	
 #undef BINARY_EXPRESSION
-
-		/*
-		struct assign {
+		
+		template<typename R>
+		class land_expression: public expression<R> {
+		private:
+			expression<number>::ptr _expr1;
+			expression<number>::ptr _expr2;
+		public:
+			land_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr1->evaluate(context) && _expr2->evaluate(context));
+			}
+		};
+		
+		template<typename R>
+		class lor_expression: public expression<R> {
+		private:
+			expression<number>::ptr _expr1;
+			expression<number>::ptr _expr2;
+		public:
+			lor_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr1->evaluate(context) || _expr2->evaluate(context));
+			}
+		};
+		
+		/*struct assign {
 			number_variable_ptr operator()(number_variable_ptr t1, number t2) const {
 				t1->value = t2;
 				return t1;
@@ -238,341 +346,72 @@ namespace stork {
 				return t1;
 			}
 		};
+		
+		
+		template<typename R, typename T1>
+		using assign_expression = binary_expression<R, T1, typename variable_traits<T1>::rvalue, assign>;
 		*/
+		
+
+		template<typename R>
+		class assign_array_expression: public expression<array_variable_ptr> {
+		private:
+			std::string _type;
+			array_variable_expression::ptr _expr1;
+			array_variable_expression::ptr _expr2;
+			
+			template <typename T>
+			static std::shared_ptr<variable_impl<T> > clone(const std::shared_ptr<variable_impl<T> >& t) {
+				return std::make_shared<variable_impl<T> >(t->value);
+			}
+			
+			template <typename T>
+			static void shallow_copy_array(array& dst, const array_variable_ptr& src) {
+				for (const variable_ptr& v : src->value) {
+					dst.push_back(clone(v->static_downcast<T>()));
+				}
+			}
+			
+			static array_variable_ptr clone(std::string_view type, const array_variable_ptr& src) {
+				array dst;
+				
+				switch (type.front()) {
+					case '[':
+						{
+							std::string_view inner_type = type.substr(1, type.size() - 2);
+							for (const variable_ptr& v : src->value) {
+									dst.push_back(clone(inner_type, v->static_downcast<array>()));
+							}
+						}
+						break;
+					case '(':
+						shallow_copy_array<function>(dst, src);
+						break;
+					default:
+						if (type == "number") {
+							shallow_copy_array<number>(dst, src);
+						} else if (type == "string") {
+							shallow_copy_array<string>(dst, src);
+						}
+						break;
+				}
+				
+				return std::make_shared<array_variable>(std::move(dst));
+			}
+		public:
+			assign_array_expression(std::string type, array_variable_expression::ptr expr1, array_variable_expression::ptr expr2) :
+				_type(std::move(type)),
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr1->evaluate(context)->value = clone(_type, _expr2->evaluate(context))->value);
+			}
+		};
+		
 		/*
-		template<typename Ret, class VariablePtr>
-		class assign_expression: public expression<Ret> {
-		private:
-			using lvalue_expression_ptr = typename expression<VariablePtr>::ptr;
-			using rvalue_expression_ptr = expression<typename variable_traits<VariablePtr>::rvalue>;
-			lvalue_expression_ptr _expr1;
-			rvalue_expression_ptr _expr2;
-			
-			assign_expression(lvalue_expression_ptr expr1, rvalue_expression_ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context)->assign_from(_expr2->evaluate(context)));
-			}
-		};
-		
-		template<typename Ret, class VariablePtr>
-		class add_assign_expression: public expression<Ret> {
-		private:
-			using lvalue_expression_ptr = typename expression<VariablePtr>::ptr;
-			using rvalue_expression_ptr = expression<typename variable_traits<VariablePtr>::rvalue>;
-			lvalue_expression_ptr _expr1;
-			rvalue_expression_ptr _expr2;
-			
-			add_assign_expression(lvalue_expression_ptr expr1, rvalue_expression_ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				VariablePtr rslt1 = _expr1->evaluate(context);
-				rslt1->value += _expr2->evaluate(context);
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class sub_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			sub_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value -= _expr2->evaluate(context);
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class mul_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			mul_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value *= _expr2->evaluate(context);
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class div_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			div_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value /= _expr2->evaluate(context);
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class idiv_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			idiv_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value/_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class mod_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			mod_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				number rslt2 = _expr2->evaluate(context);
-				rslt1->value -= rslt2 * int(rslt1->value/rslt2);
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class and_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			and_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value) & int(_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template<typename Ret>
-		class or_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			or_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value) | int(_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-
-		template<typename Ret>
-		class xor_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			xor_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value) ^ int(_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-
-		template<typename Ret>
-		class sl_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			sl_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value) << int(_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-
-		template<typename Ret>
-		class sr_assign_expression: public expression<Ret> {
-		private:
-			number_variable_expression::ptr _expr1;
-			number_expression::ptr _expr2;
-			
-			sr_assign_expression(number_variable_expression::ptr expr1, number_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				number_variable_ptr rslt1 = _expr1->evaluate(context);
-				rslt1->value = int(rslt1->value) >> int(_expr2->evaluate(context));
-				return convert<Ret>(std::move(rslt1));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class eq_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			eq_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) == _expr2->evaluate(context));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class ne_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			ne_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) != _expr2->evaluate(context));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class lt_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			lt_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) < _expr2->evaluate(context));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class gt_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			gt_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) > _expr2->evaluate(context));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class le_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			le_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) <= _expr2->evaluate(context));
-			}
-		};
-		
-		template <typename Ret, class ExpressionPtr>
-		class ge_expression: public expression<Ret> {
-		private:
-			ExpressionPtr _expr1;
-			ExpressionPtr _expr2;
-		public:
-			ge_expression(ExpressionPtr expr1, ExpressionPtr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return convert<Ret>(_expr1->evaluate(context) >= _expr2->evaluate(context));
-			}
-		};
-		
 		template<typename T>
 		class ternary_expression: public expression<T> {
 		private:
@@ -631,39 +470,6 @@ namespace stork {
 		};
 		
 		*/
-		template<typename R>
-		class land_expression: public expression<R> {
-		private:
-			expression<number>::ptr _expr1;
-			expression<number>::ptr _expr2;
-		public:
-			land_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			R evaluate(runtime_context& context) const override {
-				return convert<R>(_expr1->evaluate(context) && _expr2->evaluate(context));
-			}
-		};
-		
-		template<typename R>
-		class lor_expression: public expression<R> {
-		private:
-			expression<number>::ptr _expr1;
-			expression<number>::ptr _expr2;
-		public:
-			lor_expression(expression<number>::ptr expr1, expression<number>::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			R evaluate(runtime_context& context) const override {
-				return convert<R>(_expr1->evaluate(context) || _expr2->evaluate(context));
-			}
-		};
 	}
 /*
 	{"(", reserved_token::open_round},

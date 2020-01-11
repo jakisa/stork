@@ -2,9 +2,9 @@
 #define variable_hpp
 
 #include <memory>
-#include <string>
 #include <deque>
 #include <functional>
+#include <string>
 
 namespace stork {
 
@@ -18,7 +18,7 @@ namespace stork {
 	class runtime_context;
 	
 	using number = double;
-	using string = std::string;
+	using string = std::shared_ptr<std::string>;
 	using array = std::deque<variable_ptr>;
 	using function = std::shared_ptr<std::function<void(runtime_context&)> >;
 	
@@ -49,9 +49,6 @@ namespace stork {
 	public:
 		virtual ~variable() = default;
 
-		virtual variable_ptr clone() const = 0;
-		virtual variable_ptr assign_from(const variable_ptr& rhs) = 0;
-		
 		template <typename T>
 		std::shared_ptr<variable_impl<T>> static_downcast() {
 			return std::static_pointer_cast<variable_impl<T>>(shared_from_this());
@@ -81,10 +78,6 @@ namespace stork {
 		value_type value;
 		
 		variable_impl(value_type value);
-
-		variable_ptr clone() const override;
-		variable_ptr assign_from(const variable_ptr& rhs) override;
-		variable_ptr assign_from(double value);
 	};
 
 	template<>
@@ -95,10 +88,6 @@ namespace stork {
 		value_type value;
 
 		variable_impl(value_type value);
-
-		variable_ptr clone() const override;
-		variable_ptr assign_from(const variable_ptr& rhs) override;
-		variable_ptr assign_from(std::string value);
 	};
 	
 	template<>
@@ -109,9 +98,6 @@ namespace stork {
 		value_type value;
 
 		variable_impl(value_type value);
-
-		variable_ptr clone() const override;
-		variable_ptr assign_from(const variable_ptr& rhs) override;
 	};
 	
 	template<>
@@ -122,9 +108,6 @@ namespace stork {
 		value_type value;
 
 		variable_impl(value_type value);
-
-		variable_ptr clone() const override;
-		variable_ptr assign_from(const variable_ptr& rhs) override;
 	};
 }
 
