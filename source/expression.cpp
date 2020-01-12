@@ -1,4 +1,5 @@
 #include "expression.hpp"
+#include <type_traits>
 
 namespace stork {
 	namespace {
@@ -18,8 +19,11 @@ namespace stork {
 		};
 	
 		template<typename To, typename From>
-		struct converter {
-			const To& operator()(const From& from) const {
+		struct converter;
+	
+		template<typename To>
+		struct converter<To, std::shared_ptr<variable_impl<To> > > {
+			const To& operator()(const std::shared_ptr<variable_impl<To> >& from) const {
 				return from->value;
 			}
 		};
@@ -44,10 +48,29 @@ namespace stork {
 			}
 		};
 		
-		template<typename To, typename From>
+		template<>
+		struct converter<string, string> {
+			const string& operator()(const string& from) const {
+				return from;
+			}
+		};
+		
+		template<typename To, typename From,
+			std::enable_if_t<std::is_same<number, From>::value || !std::is_arithmetic<From>::value, int> = 0
+		>
 		To convert(From&& from) {
 			return converter<To, From>()(std::forward<From>(from));
 		}
+		
+		template<typename To, typename From,
+			std::enable_if_t<!std::is_same<number, From>::value && std::is_arithmetic<From>::value, int> = 0
+		>
+		To convert(const From& from) {
+			return convert<To>(number(from));
+		}
+		
+		/*
+		Removed while work is in progress, to disable unused function warnings.
 		
 		number_variable_ptr assign(number_variable_ptr n1, number n2) {
 			n1->value = n2;
@@ -71,6 +94,8 @@ namespace stork {
 		number lt(string s1, string s2) {
 			return *s1 < *s2;
 		}
+		
+		*/
 	
 		template<typename T>
 		class global_variable_expression: public expression<T> {
@@ -116,23 +141,7 @@ namespace stork {
 				return _c;
 			}
 		};
-		
-		template<typename R, typename T1, class O>
-		class unary_expression: public expression<R> {
-		private:
-			using Expr1 = typename expression<T1>::ptr;
-			Expr1 _expr1;
-		public:
-			unary_expression(Expr1 expr1) :
-				_expr1(std::move(expr1))
-			{
-			}
-			
-			R evaluate(runtime_context& context) const override {
-				return convert<R>(O()(_expr1->evaluate(context)));
-			}
-		};
-		
+		/*
 		template<typename R, typename T1, typename T2, class O>
 		class binary_expression: public expression<R> {
 		private:
@@ -151,6 +160,31 @@ namespace stork {
 				return convert<R>(O()(_expr1->evaluate(context), _expr2->evaluate(context)));
 			}
 		};
+		 */
+		template<class O, typename R, typename... Ts>
+		class generic_expression: public expression<R> {
+		private:
+			std::tuple<typename expression<Ts>::ptr...> _exprs;
+			
+			template<typename... Exprs>
+			R evaluate_tuple(runtime_context& context, const Exprs&... exprs) const {
+				return convert<R>(O()(exprs->evaluate(context)...));
+			}
+		public:
+			generic_expression(typename expression<Ts>::ptr... exprs) :
+				_exprs(std::move(exprs)...)
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return std::apply(
+					[&](const auto&... exprs){
+						return this->evaluate_tuple(context, exprs...);
+					},
+					_exprs
+				);
+			}
+		};
 
 #define UNARY_EXPRESSION(name, code)\
 		struct name##_op {\
@@ -160,8 +194,29 @@ namespace stork {
 			}\
 		};\
 		template<typename R, typename T1>\
-		using name##_expression = unary_expression<R, T1, name##_op>;
-		
+		using name##_expression = generic_expression<name##_op, R, T1>;
+
+#define BINARY_EXPRESSION(name, code)\
+		struct name##_op {\
+			template <typename T1, typename T2>\
+			auto operator()(T1 t1, T2 t2) {\
+				code;\
+			}\
+		};\
+		template<typename R, typename T1, typename T2>\
+		using name##_expression = generic_expression<name##_op, R, T1, T2>;
+
+#define TERNARY_EXPRESSION(name, code)\
+		struct name##_op {\
+			template <typename T1, typename T2, typename T3>\
+			auto operator()(T1 t1, T2 t2, T3 t3) {\
+				code;\
+			}\
+		};\
+		template<typename R, typename T1, typename T2, typename T3>\
+		using name##_expression = generic_expression<name##_op, R, T1, T2, T3>;
+
+
 		UNARY_EXPRESSION(preinc,
 			++t1->value;
 			return t1;
@@ -183,18 +238,6 @@ namespace stork {
 		UNARY_EXPRESSION(bnot, return ~int(t1));
 		
 		UNARY_EXPRESSION(lnot, return !t1);
-
-#undef UNARY_EXPRESSION
-
-#define BINARY_EXPRESSION(name, code)\
-		struct name##_op {\
-			template <typename T1, typename T2>\
-			auto operator()(T1 t1, T2 t2) {\
-				code;\
-			}\
-		};\
-		template<typename R, typename T1, typename T2>\
-		using name##_expression = binary_expression<R, T1, T2, name##_op>;
 
 		BINARY_EXPRESSION(add, return t1 + t2);
 		
@@ -293,8 +336,10 @@ namespace stork {
 		BINARY_EXPRESSION(le, return !lt(t2, t1));
 		
 		BINARY_EXPRESSION(ge, return !lt(t1, t2));
-	
-#undef BINARY_EXPRESSION
+		
+		TERNARY_EXPRESSION(ternary, return t1 ? t2 : t3);
+		
+		//template class generic_expression<ternary_op, string, number, string, string>;
 		
 		template<typename R>
 		class land_expression: public expression<R> {
@@ -330,29 +375,6 @@ namespace stork {
 			}
 		};
 		
-		/*struct assign {
-			number_variable_ptr operator()(number_variable_ptr t1, number t2) const {
-				t1->value = t2;
-				return t1;
-			}
-			
-			string_variable_ptr operator()(string_variable_ptr t1, string t2) const {
-				t1->value = std::move(t2);
-				return t1;
-			}
-			
-			function_variable_ptr operator()(function_variable_ptr t1, function_variable_ptr t2) const {
-				t1->value = t2->value;
-				return t1;
-			}
-		};
-		
-		
-		template<typename R, typename T1>
-		using assign_expression = binary_expression<R, T1, typename variable_traits<T1>::rvalue, assign>;
-		*/
-		
-
 		template<typename R>
 		class assign_array_expression: public expression<array_variable_ptr> {
 		private:
@@ -412,29 +434,6 @@ namespace stork {
 		};
 		
 		/*
-		template<typename T>
-		class ternary_expression: public expression<T> {
-		private:
-			number_expression::ptr _expr1;
-			typename expression<T>::ptr _expr2;
-			typename expression<T>::ptr _expr3;
-		public:
-			ternary_expression(
-				number_expression::ptr expr1,
-				typename expression<T>::ptr expr2,
-				typename expression<T>::ptr expr3
-			) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2)),
-				_expr3(std::move(expr3))
-			{
-			}
-			
-			T evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context) ? _expr2->evaluate(context) : _expr3->evaluate(context);
-			}
-		};
-		
 		template <typename Ret, typename S, typename T>
 		class comma_expression: public expression<Ret> {
 		private:
