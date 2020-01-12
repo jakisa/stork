@@ -11,6 +11,7 @@ namespace stork {
 	class variable;
 	
 	using variable_ptr = std::shared_ptr<variable>;
+	using variable_cptr = std::shared_ptr<const variable>;
 	
 	template <typename T>
 	class variable_impl;
@@ -50,23 +51,17 @@ namespace stork {
 		virtual ~variable() = default;
 
 		template <typename T>
-		std::shared_ptr<variable_impl<T>> static_downcast() {
-			return std::static_pointer_cast<variable_impl<T>>(shared_from_this());
-		}
-		
-		template <typename T>
-		std::shared_ptr<variable_impl<const T>> static_downcast() const {
-			return std::static_pointer_cast<variable_impl<const T>>(shared_from_this());
-		}
-		
-		template <typename T>
 		T static_pointer_downcast() {
-			return std::static_pointer_cast<typename T::element_type::value_type>(shared_from_this());
+			return std::static_pointer_cast<
+				variable_impl<typename T::element_type::value_type>
+			>(shared_from_this());
 		}
 		
 		template <typename T>
 		T static_pointer_downcast() const {
-			return std::static_pointer_cast<const typename T::element_type::value_type>(shared_from_this());
+			return std::static_pointer_cast<
+				variable_impl<const typename T::element_type::value_type>
+			>(shared_from_this());
 		}
 	};
 

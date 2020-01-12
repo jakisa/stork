@@ -4,73 +4,36 @@
 namespace stork {
 	namespace {
 		template<typename T>
-		struct variable_traits {
-			using rvalue = T;
-		};
-		
-		template<>
-		struct variable_traits<number_variable_ptr> {
-			using rvalue = number;
-		};
-		
-		template<>
-		struct variable_traits<string_variable_ptr> {
-			using rvalue = string;
+		struct remove_cvref {
+			using type = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
 		};
 	
-		template<typename To, typename From>
-		struct converter;
-	
-		template<typename To>
-		struct converter<To, std::shared_ptr<variable_impl<To> > > {
-			const To& operator()(const std::shared_ptr<variable_impl<To> >& from) const {
-				return from->value;
-			}
+		template<class V, typename T>
+		struct is_boxed {
+			static const bool value = false;
 		};
 		
 		template<typename T>
-		struct converter<T, T> {
-			const T& operator()(const T& t) const {
-				return t;
-			}
+		struct is_boxed<std::shared_ptr<variable_impl<T> >, T> {
+			static const bool value = true;
 		};
-		
-		template<typename From>
-		struct converter<void, From> {
-			void operator()(const From&) const {
-			}
-		};
-		
-		template<typename From>
-		struct converter<string, From> {
-			string operator()(const From& from) const {
+	
+		template<typename To, typename From>
+		auto convert(From&& from) {
+			if constexpr(std::is_void<To>::value) {
+				return;
+			} else if constexpr(std::is_same<To, typename remove_cvref<From>::type>::value) {
+				return std::forward<From>(from);
+			} else if constexpr(is_boxed<From, To>::value) {
+				return (const To&)(from->value);
+			} else {
+				static_assert(std::is_same<To, string>::value);
 				return to_string(from);
 			}
-		};
-		
-		template<>
-		struct converter<string, string> {
-			const string& operator()(const string& from) const {
-				return from;
-			}
-		};
-		
-		template<typename To, typename From,
-			std::enable_if_t<std::is_same<number, From>::value || !std::is_arithmetic<From>::value, int> = 0
-		>
-		To convert(From&& from) {
-			return converter<To, From>()(std::forward<From>(from));
-		}
-		
-		template<typename To, typename From,
-			std::enable_if_t<!std::is_same<number, From>::value && std::is_arithmetic<From>::value, int> = 0
-		>
-		To convert(const From& from) {
-			return convert<To>(number(from));
 		}
 		
 		/*
-		Removed while work is in progress, to disable unused function warnings.
+		//Removed while work is in progress, to disable unused function warnings.
 		
 		number_variable_ptr assign(number_variable_ptr n1, number n2) {
 			n1->value = n2;
@@ -97,8 +60,8 @@ namespace stork {
 		
 		*/
 	
-		template<typename T>
-		class global_variable_expression: public expression<T> {
+		template<typename R, typename T>
+		class global_variable_expression: public expression<R> {
 		private:
 			int _idx;
 		public:
@@ -107,13 +70,13 @@ namespace stork {
 			{
 			}
 			
-			T evaluate(runtime_context& context) const override {
-				return context.global(_idx)->template static_pointer_downcast<T>();
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(context.global(_idx)->template static_pointer_downcast<T>());
 			}
 		};
 		
-		template<typename T>
-		class local_variable_expression: public expression<T> {
+		template<typename R, typename T>
+		class local_variable_expression: public expression<R> {
 		private:
 			int _idx;
 		public:
@@ -122,45 +85,26 @@ namespace stork {
 			{
 			}
 			
-			T evaluate(runtime_context& context) const override {
-				return context.local(_idx)->template static_pointer_downcast<T>();
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(context.local(_idx)->template static_pointer_downcast<T>());
 			}
 		};
 		
-		template<typename T>
-		class constant_expression: public expression<const T&> {
+		template<typename R, typename T>
+		class constant_expression: public expression<R> {
 		private:
-			T _c;
+			R _c;
 		public:
 			constant_expression(T c) :
-				_c(std::move(c))
-			{
-			}
-			
-			const T& evaluate(runtime_context& context) const override {
-				return _c;
-			}
-		};
-		/*
-		template<typename R, typename T1, typename T2, class O>
-		class binary_expression: public expression<R> {
-		private:
-			using Expr1 = typename expression<T1>::ptr;
-			using Expr2 = typename expression<T2>::ptr;
-			Expr1 _expr1;
-			Expr2 _expr2;
-		public:
-			binary_expression(Expr1 expr1, Expr2 expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
+				_c(convert<R>(std::move(c)))
 			{
 			}
 			
 			R evaluate(runtime_context& context) const override {
-				return convert<R>(O()(_expr1->evaluate(context), _expr2->evaluate(context)));
+				return _c;
 			}
 		};
-		 */
+
 		template<class O, typename R, typename... Ts>
 		class generic_expression: public expression<R> {
 		private:
@@ -168,7 +112,7 @@ namespace stork {
 			
 			template<typename... Exprs>
 			R evaluate_tuple(runtime_context& context, const Exprs&... exprs) const {
-				return convert<R>(O()(exprs->evaluate(context)...));
+				return convert<R>(O()(std::move(exprs->evaluate(context))...));
 			}
 		public:
 			generic_expression(typename expression<Ts>::ptr... exprs) :
@@ -216,12 +160,11 @@ namespace stork {
 		template<typename R, typename T1, typename T2, typename T3>\
 		using name##_expression = generic_expression<name##_op, R, T1, T2, T3>;
 
-
 		UNARY_EXPRESSION(preinc,
 			++t1->value;
 			return t1;
 		);
-		
+
 		UNARY_EXPRESSION(predec,
 			--t1->value;
 			return t1;
@@ -337,9 +280,9 @@ namespace stork {
 		
 		BINARY_EXPRESSION(ge, return !lt(t1, t2));
 		
-		TERNARY_EXPRESSION(ternary, return t1 ? t2 : t3);
+		BINARY_EXPRESSION(comma, return (t1, t2));
 		
-		//template class generic_expression<ternary_op, string, number, string, string>;
+		TERNARY_EXPRESSION(ternary, return t1 ? t2 : t3);
 		
 		template<typename R>
 		class land_expression: public expression<R> {
@@ -390,7 +333,7 @@ namespace stork {
 			template <typename T>
 			static void shallow_copy_array(array& dst, const array_variable_ptr& src) {
 				for (const variable_ptr& v : src->value) {
-					dst.push_back(clone(v->static_downcast<T>()));
+					dst.push_back(clone(v->static_pointer_downcast<T>()));
 				}
 			}
 			
@@ -402,18 +345,18 @@ namespace stork {
 						{
 							std::string_view inner_type = type.substr(1, type.size() - 2);
 							for (const variable_ptr& v : src->value) {
-									dst.push_back(clone(inner_type, v->static_downcast<array>()));
+									dst.push_back(clone(inner_type, v->static_pointer_downcast<array_variable_ptr>()));
 							}
 						}
 						break;
 					case '(':
-						shallow_copy_array<function>(dst, src);
+						shallow_copy_array<function_variable_ptr>(dst, src);
 						break;
 					default:
 						if (type == "number") {
-							shallow_copy_array<number>(dst, src);
+							shallow_copy_array<number_variable_ptr>(dst, src);
 						} else if (type == "string") {
-							shallow_copy_array<string>(dst, src);
+							shallow_copy_array<string_variable_ptr>(dst, src);
 						}
 						break;
 				}
@@ -433,42 +376,26 @@ namespace stork {
 			}
 		};
 		
-		/*
-		template <typename Ret, typename S, typename T>
-		class comma_expression: public expression<Ret> {
+		template<typename R, typename T>
+		class index_expression: public expression<R>{
 		private:
-			typename expression<T>::ptr _expr1;
-			typename expression<S>::ptr _expr2;
+			array_expression::ptr _expr1;
+			number_expression::ptr _expr2;
 		public:
-			comma_expression(typename expression<T>::ptr expr1, typename expression<S>::ptr expr2) :
+			index_expression(array_expression::ptr expr1, number_expression::ptr expr2):
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2))
 			{
 			}
-			
-			Ret evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context), convert<Ret>(_expr2->evaluate(context));
+		
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(
+					_expr1->evaluate(context)[
+						int(_expr2->evaluate(context))
+					]->template static_pointer_downcast<T>()
+				);
 			}
 		};
-		
-		template <typename T>
-		class array_expression: public expression<T> {
-		private:
-			array_variable_expression::ptr _expr1;
-			number_variable_expression::ptr _expr2;
-		public:
-			array_expression(array_variable_expression::ptr expr1, number_variable_expression::ptr expr2) :
-				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
-			{
-			}
-			
-			T evaluate(runtime_context& context) const override {
-				return _expr1->evaluate(context)->value[_expr2->evaluate(context)];
-			}
-		};
-		
-		*/
 	}
 /*
 	{"(", reserved_token::open_round},
