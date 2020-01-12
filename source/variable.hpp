@@ -21,7 +21,7 @@ namespace stork {
 	using number = double;
 	using string = std::shared_ptr<std::string>;
 	using array = std::deque<variable_ptr>;
-	using function = std::shared_ptr<std::function<void(runtime_context&)> >;
+	using function = std::function<void(runtime_context&)>;
 	
 	using number_variable = variable_impl<number>;
 	using string_variable = variable_impl<string>;

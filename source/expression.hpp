@@ -21,14 +21,6 @@ namespace stork {
 	
 	using void_expression = expression<void>;
 	using number_expression = expression<number>;
-	using string_expression = expression<string>;
-	using array_expression = expression<array>;
-	using function_expression = expression<function>;
-	using variable_expression = expression<variable_ptr>;
-	using number_variable_expression = expression<number_variable_ptr>;
-	using string_variable_expression = expression<string_variable_ptr>;
-	using array_variable_expression = expression<array_variable_ptr>;
-	using function_variable_expression = expression<function_variable_ptr>;
 }
 
 #endif /* expression_hpp */

@@ -2,6 +2,13 @@
 #include <type_traits>
 
 namespace stork {
+	using string_expression = expression<string>;
+	using variable_expression = expression<variable_ptr>;
+	using number_variable_expression = expression<number_variable_ptr>;
+	using string_variable_expression = expression<string_variable_ptr>;
+	using array_variable_expression = expression<array_variable_ptr>;
+	using function_variable_expression = expression<function_variable_ptr>;
+
 	namespace {
 		template<typename T>
 		struct remove_cvref {
@@ -379,10 +386,10 @@ namespace stork {
 		template<typename R, typename T>
 		class index_expression: public expression<R>{
 		private:
-			array_expression::ptr _expr1;
+			array_variable_expression::ptr _expr1;
 			number_expression::ptr _expr2;
 		public:
-			index_expression(array_expression::ptr expr1, number_expression::ptr expr2):
+			index_expression(array_variable_expression::ptr expr1, number_expression::ptr expr2):
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2))
 			{
@@ -390,15 +397,46 @@ namespace stork {
 		
 			R evaluate(runtime_context& context) const override {
 				return convert<R>(
-					_expr1->evaluate(context)[
+					_expr1->evaluate(context)->value[
 						int(_expr2->evaluate(context))
 					]->template static_pointer_downcast<T>()
 				);
 			}
 		};
+		
+		template<typename R, typename T>
+		class call_expression: public expression<R>{
+		private:
+			function_variable_expression::ptr _fexpr;
+			std::vector<variable_expression::ptr> _exprs;
+		public:
+			call_expression(
+				function_variable_expression::ptr fexpr,
+				std::vector<variable_expression::ptr> exprs
+			):
+				_fexpr(std::move(fexpr)),
+				_exprs(std::move(exprs))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				for (size_t i = _exprs.size(); i; --i) {
+					context.push(_exprs[i-1]->evaluate(context));
+				}
+
+				function_variable_ptr f = _fexpr->evaluate(context);
+				
+				context.call();
+				f->value(context);
+				
+				return convert<R>(
+					context.end_function(
+						_exprs.size()
+					)->template static_pointer_downcast<T>()
+				);
+			}
+		};
+		
+		template class call_expression<number, number_variable_ptr>;
 	}
-/*
-	{"(", reserved_token::open_round},
-	{")", reserved_token::close_round},
-*/
 }
