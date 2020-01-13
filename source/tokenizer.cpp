@@ -91,12 +91,11 @@ namespace stork {
 			size_t line_number = stream.line_number();
 			size_t char_index = stream.char_index();
 
-			int c = stream();
-			
 			std::string str;
 			
 			bool escaped = false;
-			do {
+			int c = stream();
+			for (; get_character_type(c) != character_type::eof; c = stream()) {
 				if (c == '\\') {
 					escaped = true;
 				} else {
@@ -124,6 +123,7 @@ namespace stork {
 							case '\t':
 							case '\n':
 							case '\r':
+								stream.push_back(c);
 								throw parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 							case '"':
 								return token(std::move(str), line_number, char_index);
@@ -133,8 +133,8 @@ namespace stork {
 					}
 				}
 				c = stream();
-			} while (get_character_type(c) != character_type::eof);
-			
+			}
+			stream.push_back(c);
 			throw parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
 		}
 		
@@ -160,6 +160,7 @@ namespace stork {
 				closing = (c == '*');
 			} while (get_character_type(c) != character_type::eof);
 
+			stream.push_back(c);
 			throw parsing_error("Expected closing '*/'", stream.line_number(), stream.char_index());
 		}
 	}

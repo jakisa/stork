@@ -1,6 +1,0 @@
-var number a = 3 + 2;
-a += 42;
-"test";
-3.14;
-//this is a comment
-
