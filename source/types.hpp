@@ -2,8 +2,7 @@
 #define types_h
 #include <vector>
 #include <variant>
-#include <map>
-#include <deque>
+#include <set>
 
 namespace stork {
 	enum struct simple_type {
@@ -16,30 +15,30 @@ namespace stork {
 		int inner_type_id;
 	};
 	
+	struct function_type;
+	using type=std::variant<simple_type, array_type, function_type>;
+	
+	using type_handle = const type*;
+	
 	struct function_type {
 		struct param {
-			int type_id;
+			type_handle type_id;
 			bool by_ref;
 		};
 		int return_type_id;
 		std::vector<param> param_type_id;
 	};
-	
-	using type=std::variant<simple_type, array_type, function_type>;
 
 	class type_registry {
 	private:
 		struct types_less{
 			bool operator()(const type& t1, const type& t2) const;
 		};
-		std::map<type, int, types_less> _types_map;
-		std::deque<type> _types;
+		std::set<type, types_less> _types;
 	public:
 		type_registry();
 		
-		int register_type(const type& t);
-		
-		const type& get_type(int type_id) const;
+		type_handle get_handle(const type& t);
 	};
 }
 

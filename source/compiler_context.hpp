@@ -10,13 +10,13 @@
 namespace stork {
 	class variable_info {
 	private:
-		int _type_id;
+		type_handle _type_id;
 		size_t _index;
 		bool _is_global;
 	public:
-		variable_info(int type_id, size_t index, bool is_global);
+		variable_info(type_handle type_id, size_t index, bool is_global);
 		
-		int type_id() const;
+		type_handle type_id() const;
 		
 		size_t index() const;
 		
@@ -29,14 +29,14 @@ namespace stork {
 	public:
 		virtual const variable_info* find(const std::string& name) const;
 		
-		virtual void create_variable(std::string name, int type_id) = 0;
+		virtual void create_variable(std::string name, type_handle type_id) = 0;
 		
 		virtual ~variable_lookup();
 	};
 	
 	class global_variable_lookup: public variable_lookup {
 	public:
-		void create_variable(std::string name, int type_id) override;
+		void create_variable(std::string name, type_handle type_id) override;
 	};
 	
 	class local_variable_lookup: public variable_lookup {
@@ -48,7 +48,7 @@ namespace stork {
 		
 		const variable_info* find(const std::string& name) const override;
 
-		void create_variable(std::string name, int type_id) override;
+		void create_variable(std::string name, type_handle type_id) override;
 		
 		std::unique_ptr<local_variable_lookup> detach_parent();
 	};
@@ -59,7 +59,7 @@ namespace stork {
 	public:
 		function_variable_lookup();
 		
-		void create_param(std::string name, int type_id);
+		void create_param(std::string name, type_handle type_id);
 	};
 	
 	class compiler_context {
@@ -71,15 +71,13 @@ namespace stork {
 	public:
 		compiler_context();
 		
-		int register_type(const type& t);
-		
-		const type& get_type(int type_id) const;
+		type_handle get_handle(const type& t);
 		
 		const variable_info* find(const std::string& name) const;
 		
-		void create_variable(std::string name, int type_id);
+		void create_variable(std::string name, type_handle type_id);
 		
-		void create_param(std::string name, int type_id);
+		void create_param(std::string name, type_handle type_id);
 		
 		void enter_scope();
 		

@@ -43,22 +43,12 @@ namespace stork {
 	}
 
 	type_registry::type_registry(){
-		register_type(simple_type::nothing);
-		register_type(simple_type::number);
-		register_type(simple_type::string);
+		_types.emplace(simple_type::nothing);
+		_types.emplace(simple_type::number);
+		_types.emplace(simple_type::string);
 	}
 	
-	int type_registry::register_type(const type& t) {
-		auto pib = _types_map.emplace(t, _types_map.size());
-		
-		if (pib.second) {
-			_types.push_back(t);
-		}
-		
-		return pib.first->second;
-	}
-	
-	const type& type_registry::get_type(int type_id) const {
-		return _types[type_id];
+	type_handle type_registry::get_handle(const type& t) {
+		return &(*(_types.insert(t).first));
 	}
 }

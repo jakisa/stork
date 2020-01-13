@@ -1,14 +1,14 @@
 #include "compiler_context.hpp"
 
 namespace stork{
-	variable_info::variable_info(int type_id, size_t index, bool is_global) :
+	variable_info::variable_info(type_handle type_id, size_t index, bool is_global) :
 		_type_id(type_id),
 		_index(index),
 		_is_global(is_global)
 	{
 	}
 	
-	int variable_info::type_id() const {
+	type_handle variable_info::type_id() const {
 		return _type_id;
 	}
 	
@@ -31,7 +31,7 @@ namespace stork{
 	variable_lookup::~variable_lookup() {
 	}
 
-	void global_variable_lookup::create_variable(std::string name, int type_id) {
+	void global_variable_lookup::create_variable(std::string name, type_handle type_id) {
 		_variables.emplace(std::move(name), variable_info(type_id, _variables.size(), true));
 	}
 
@@ -49,7 +49,7 @@ namespace stork{
 		}
 	}
 
-	void local_variable_lookup::create_variable(std::string name, int type_id) {
+	void local_variable_lookup::create_variable(std::string name, type_handle type_id) {
 		_variables.emplace(std::move(name), variable_info(type_id, _next_variable_index++, false));
 	}
 	
@@ -63,7 +63,7 @@ namespace stork{
 	{
 	}
 	
-	void function_variable_lookup::create_param(std::string name, int type_id) {
+	void function_variable_lookup::create_param(std::string name, type_handle type_id) {
 		_variables.emplace(std::move(name), variable_info(type_id, _next_param_index--, false));
 	}
 
@@ -72,12 +72,8 @@ namespace stork{
 	{
 	}
 	
-	int compiler_context::register_type(const type& t) {
-		return _types.register_type(t);
-	}
-		
-	const type& compiler_context::get_type(int type_id) const {
-		return _types.get_type(type_id);
+	const type* compiler_context::get_handle(const type& t) {
+		return _types.get_handle(t);
 	}
 	
 	const variable_info* compiler_context::find(const std::string& name) const {
@@ -87,7 +83,7 @@ namespace stork{
 		return _globals.find(name);
 	}
 	
-	void compiler_context::create_variable(std::string name, int type_id) {
+	void compiler_context::create_variable(std::string name, type_handle type_id) {
 		if (_locals) {
 			_locals->create_variable(std::move(name), type_id);
 		} else {
@@ -95,7 +91,7 @@ namespace stork{
 		}
 	}
 	
-	void compiler_context::create_param(std::string name, int type_id) {
+	void compiler_context::create_param(std::string name, type_handle type_id) {
 		_params->create_param(name, type_id);
 	}
 	
