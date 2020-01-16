@@ -30,6 +30,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D15C4F5523CDE3AD007FA82D /* helpers.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = helpers.hpp; sourceTree = "<group>"; };
 		D16A33FF23CC89FF001AB516 /* stork */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stork; sourceTree = BUILT_PRODUCTS_DIR; };
 		D16A340A23CC8A72001AB516 /* push_back_stream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = push_back_stream.cpp; sourceTree = "<group>"; };
 		D16A340B23CC8A72001AB516 /* errors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = errors.hpp; sourceTree = "<group>"; };
@@ -87,14 +88,15 @@
 				D16A342C23CD27E7001AB516 /* compiler_context.hpp */,
 				D16A340A23CC8A72001AB516 /* push_back_stream.cpp */,
 				D16A340B23CC8A72001AB516 /* errors.hpp */,
+				D16A341123CC8A72001AB516 /* errors.cpp */,
 				D16A340C23CC8A72001AB516 /* lookup.hpp */,
 				D16A340D23CC8A72001AB516 /* tokens.hpp */,
+				D16A341323CC8A72001AB516 /* tokens.cpp */,
 				D16A340E23CC8A72001AB516 /* tokenizer.cpp */,
 				D16A340F23CC8A72001AB516 /* tokenizer.hpp */,
 				D16A341023CC8A72001AB516 /* push_back_stream.hpp */,
-				D16A341123CC8A72001AB516 /* errors.cpp */,
 				D16A341223CC8A72001AB516 /* main.cpp */,
-				D16A341323CC8A72001AB516 /* tokens.cpp */,
+				D15C4F5523CDE3AD007FA82D /* helpers.hpp */,
 			);
 			name = source;
 			path = ../../source;

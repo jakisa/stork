@@ -1,70 +1,75 @@
 #include "compiler_context.hpp"
 
 namespace stork{
-	variable_info::variable_info(type_handle type_id, size_t index, bool is_global) :
+	identifier_info::identifier_info(type_handle type_id, size_t index, bool is_global, bool is_constant) :
 		_type_id(type_id),
 		_index(index),
-		_is_global(is_global)
+		_is_global(is_global),
+		_is_constant(is_constant)
 	{
 	}
 	
-	type_handle variable_info::type_id() const {
+	type_handle identifier_info::type_id() const {
 		return _type_id;
 	}
 	
-	size_t variable_info::index() const {
+	size_t identifier_info::index() const {
 		return _index;
 	}
 	
-	bool variable_info::is_global() const {
+	bool identifier_info::is_global() const {
 		return _is_global;
 	}
+	
+	bool identifier_info::is_constant() const {
+		return _is_constant;
+	}
 
-	const variable_info* variable_lookup::find(const std::string& name) const {
-		if (auto it = _variables.find(name); it != _variables.end()) {
+	const identifier_info* identifier_lookup::find(const std::string& name) const {
+		if (auto it = _identifiers.find(name); it != _identifiers.end()) {
 			return &it->second;
 		} else {
 			return nullptr;
 		}
 	}
 	
-	variable_lookup::~variable_lookup() {
+	identifier_lookup::~identifier_lookup() {
 	}
 
-	void global_variable_lookup::create_variable(std::string name, type_handle type_id) {
-		_variables.emplace(std::move(name), variable_info(type_id, _variables.size(), true));
+	void global_identifier_lookup::create_identifier(std::string name, type_handle type_id, bool is_constant) {
+		_identifiers.emplace(std::move(name), identifier_info(type_id, _identifiers.size(), true, is_constant));
 	}
 
-	local_variable_lookup::local_variable_lookup(std::unique_ptr<local_variable_lookup> parent_lookup) :
+	local_identifier_lookup::local_identifier_lookup(std::unique_ptr<local_identifier_lookup> parent_lookup) :
 		_parent(std::move(parent_lookup)),
-		_next_variable_index(_parent ? _parent->_next_variable_index : 1)
+		_next_identifier_index(_parent ? _parent->_next_identifier_index : 1)
 	{
 	}
 	
-	const variable_info* local_variable_lookup::find(const std::string& name) const {
-		if (const variable_info* ret = variable_lookup::find(name)) {
+	const identifier_info* local_identifier_lookup::find(const std::string& name) const {
+		if (const identifier_info* ret = identifier_lookup::find(name)) {
 			return ret;
 		} else {
 			return _parent ? _parent->find(name) : nullptr;
 		}
 	}
 
-	void local_variable_lookup::create_variable(std::string name, type_handle type_id) {
-		_variables.emplace(std::move(name), variable_info(type_id, _next_variable_index++, false));
+	void local_identifier_lookup::create_identifier(std::string name, type_handle type_id, bool is_constant) {
+		_identifiers.emplace(std::move(name), identifier_info(type_id, _next_identifier_index++, false, is_constant));
 	}
 	
-	std::unique_ptr<local_variable_lookup> local_variable_lookup::detach_parent() {
+	std::unique_ptr<local_identifier_lookup> local_identifier_lookup::detach_parent() {
 		return std::move(_parent);
 	}
 
-	function_variable_lookup::function_variable_lookup() :
-		local_variable_lookup(nullptr),
+	function_identifier_lookup::function_identifier_lookup() :
+		local_identifier_lookup(nullptr),
 		_next_param_index(-1)
 	{
 	}
 	
-	void function_variable_lookup::create_param(std::string name, type_handle type_id) {
-		_variables.emplace(std::move(name), variable_info(type_id, _next_param_index--, false));
+	void function_identifier_lookup::create_param(std::string name, type_handle type_id) {
+		_identifiers.emplace(std::move(name), identifier_info(type_id, _next_param_index--, false, false));
 	}
 
 	compiler_context::compiler_context() :
@@ -76,18 +81,18 @@ namespace stork{
 		return _types.get_handle(t);
 	}
 	
-	const variable_info* compiler_context::find(const std::string& name) const {
-		if (const variable_info* ret = _locals->find(name)) {
+	const identifier_info* compiler_context::find(const std::string& name) const {
+		if (const identifier_info* ret = _locals->find(name)) {
 			return ret;
 		}
 		return _globals.find(name);
 	}
 	
-	void compiler_context::create_variable(std::string name, type_handle type_id) {
+	void compiler_context::create_identifier(std::string name, type_handle type_id, bool is_constant) {
 		if (_locals) {
-			_locals->create_variable(std::move(name), type_id);
+			_locals->create_identifier(std::move(name), type_id, is_constant);
 		} else {
-			_globals.create_variable(std::move(name), type_id);
+			_globals.create_identifier(std::move(name), type_id, is_constant);
 		}
 	}
 	
@@ -96,11 +101,11 @@ namespace stork{
 	}
 	
 	void compiler_context::enter_scope() {
-		_locals = std::make_unique<local_variable_lookup>(std::move(_locals));
+		_locals = std::make_unique<local_identifier_lookup>(std::move(_locals));
 	}
 	
 	void compiler_context::enter_function() {
-		std::unique_ptr<function_variable_lookup> params =  std::make_unique<function_variable_lookup>();
+		std::unique_ptr<function_identifier_lookup> params =  std::make_unique<function_identifier_lookup>();
 		_params = params.get();
 		_locals = std::move(params);
 	}

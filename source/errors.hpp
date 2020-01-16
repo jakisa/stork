@@ -20,8 +20,12 @@ namespace stork {
 		size_t char_index() const noexcept;
 	};
 	
-	error parsing_error(const char* message, size_t line_number, size_t char_index);
+	error parsing_error(std::string_view message, size_t line_number, size_t char_index);
+	error semantic_error(std::string_view message, size_t line_number, size_t char_index);
 	error unexpected_error(std::string_view unexpected, size_t line_number, size_t char_index);
+	error undeclared_error(std::string_view undeclared, size_t line_number, size_t char_index);
+	error wrong_type_error(std::string_view source, std::string_view destination, bool lvalue,
+	                       size_t line_number, size_t char_index);
 
 	using get_character = std::function<int()>;
 	void format_error(const error& err, get_character source, std::ostream& output);

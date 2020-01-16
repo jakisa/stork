@@ -1,4 +1,5 @@
 #include "errors.hpp"
+#include <sstream>
 
 namespace stork {
 	error::error(std::string message, size_t line_number, size_t char_index) noexcept :
@@ -20,8 +21,14 @@ namespace stork {
 		return _char_index;
 	}
 	
-	error parsing_error(const char* message, size_t line_number, size_t char_index) {
+	error parsing_error(std::string_view message, size_t line_number, size_t char_index) {
 		std::string error_message("Parsing error: ");
+		error_message += message;
+		return error(std::move(error_message), line_number, char_index);
+	}
+	
+	error semantic_error(std::string_view message, size_t line_number, size_t char_index) {
+		std::string error_message("Semantic error: ");
 		error_message += message;
 		return error(std::move(error_message), line_number, char_index);
 	}
@@ -30,9 +37,33 @@ namespace stork {
 		std::string message("Unexpected '");
 		message += unexpected;
 		message += "'";
-		return parsing_error(message.c_str(), line_number, char_index);
+		return semantic_error(message, line_number, char_index);
 	}
 	
+	error undeclared_error(std::string_view undeclared, size_t line_number, size_t char_index) {
+		std::string message("Undeclared identifier '");
+		message += undeclared;
+		message += "'";
+		return parsing_error(message, line_number, char_index);
+	}
+
+	error wrong_type_error(std::string_view source, std::string_view destination,
+	                       bool lvalue, size_t line_number,
+		size_t char_index) {
+		std::string message;
+		if (lvalue) {
+			message += "'";
+			message += source;
+			message += "' is not a lvalue";
+		} else {
+			message += "Cannot convert '";
+			message +=  source;
+			message += "' to '";
+			message +=  destination;
+		}
+		return semantic_error(message, line_number, char_index);
+	}
+
 	void format_error(const error& err, get_character source, std::ostream& output) {
 		output << "(" << (err.line_number() + 1) << ") " << err.what() << std::endl;
 		

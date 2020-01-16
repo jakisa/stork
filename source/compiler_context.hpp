@@ -8,74 +8,77 @@
 #include "types.hpp"
 
 namespace stork {
-	class variable_info {
+	class identifier_info {
 	private:
 		type_handle _type_id;
 		size_t _index;
 		bool _is_global;
+		bool _is_constant;
 	public:
-		variable_info(type_handle type_id, size_t index, bool is_global);
+		identifier_info(type_handle type_id, size_t index, bool is_global, bool is_constant);
 		
 		type_handle type_id() const;
 		
 		size_t index() const;
 		
 		bool is_global() const;
+		
+		bool is_constant() const;
 	};
 	
-	class variable_lookup {
+	class identifier_lookup {
 	protected:
-		std::unordered_map<std::string, variable_info> _variables;
+		std::unordered_map<std::string, identifier_info> _identifiers;
 	public:
-		virtual const variable_info* find(const std::string& name) const;
+		virtual const identifier_info* find(const std::string& name) const;
 		
-		virtual void create_variable(std::string name, type_handle type_id) = 0;
+		virtual void create_identifier(std::string name, type_handle type_id, bool is_constant) = 0;
 		
-		virtual ~variable_lookup();
+		virtual ~identifier_lookup();
 	};
 	
-	class global_variable_lookup: public variable_lookup {
+	class global_identifier_lookup: public identifier_lookup {
 	public:
-		void create_variable(std::string name, type_handle type_id) override;
+		void create_identifier(std::string name, type_handle type_id, bool is_constant) override;
 	};
 	
-	class local_variable_lookup: public variable_lookup {
+	class local_identifier_lookup: public identifier_lookup {
 	private:
-		std::unique_ptr<local_variable_lookup> _parent;
-		int _next_variable_index;
+		std::unique_ptr<local_identifier_lookup> _parent;
+		int _next_identifier_index;
 	public:
-		local_variable_lookup(std::unique_ptr<local_variable_lookup> parent_lookup);
+		local_identifier_lookup(std::unique_ptr<local_identifier_lookup> parent_lookup);
 		
-		const variable_info* find(const std::string& name) const override;
+		const identifier_info* find(const std::string& name) const override;
 
-		void create_variable(std::string name, type_handle type_id) override;
+		void create_identifier(std::string name, type_handle type_id, bool is_constant) override;
 		
-		std::unique_ptr<local_variable_lookup> detach_parent();
+		std::unique_ptr<local_identifier_lookup> detach_parent();
 	};
 	
-	class function_variable_lookup: public local_variable_lookup {
+	class function_identifier_lookup: public local_identifier_lookup {
 	private:
 		int _next_param_index;
 	public:
-		function_variable_lookup();
+		function_identifier_lookup();
 		
 		void create_param(std::string name, type_handle type_id);
 	};
 	
 	class compiler_context {
 	private:
-		global_variable_lookup _globals;
-		function_variable_lookup* _params;
-		std::unique_ptr<local_variable_lookup> _locals;
+		global_identifier_lookup _globals;
+		function_identifier_lookup* _params;
+		std::unique_ptr<local_identifier_lookup> _locals;
 		type_registry _types;
 	public:
 		compiler_context();
 		
 		type_handle get_handle(const type& t);
 		
-		const variable_info* find(const std::string& name) const;
+		const identifier_info* find(const std::string& name) const;
 		
-		void create_variable(std::string name, type_handle type_id);
+		void create_identifier(std::string name, type_handle type_id, bool is_constant);
 		
 		void create_param(std::string name, type_handle type_id);
 		
