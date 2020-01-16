@@ -124,13 +124,17 @@ namespace stork {
 		bool is_eof() const;
 		
 		reserved_token get_reserved_token() const;
-		std::string_view get_identifier() const;
+		const identifier& get_identifier() const;
 		double get_number() const;
-		std::string_view get_string() const;
+		const std::string& get_string() const;
 		
 		size_t get_line_number() const;
 		size_t get_char_index() const;
 	};
+}
+
+namespace std {
+	std::string to_string(stork::reserved_token t);
 }
 
 #endif /* tokens_hpp */

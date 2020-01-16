@@ -26,8 +26,8 @@ namespace stork {
 		band,
 		bor,
 		bxor,
-		sl,
-		sr,
+		bsl,
+		bsr,
 		concat,
 		assign,
 		add_assign,
@@ -75,8 +75,6 @@ namespace stork {
 		
 		type_handle get_type_id() const;
 		bool is_lvalue() const;
-		
-		void set_return_type(type_handle return_type_id, bool returns_lvalue);
 	public:
 		node(compiler_context& context, node_value value, std::vector<node_ptr> children, size_t line_number, size_t char_index);
 		
@@ -97,7 +95,10 @@ namespace stork {
 		
 		size_t line_number() const;
 		size_t char_index() const;
+		
+		void set_return_type(type_handle return_type_id, bool returns_lvalue);
 	};
+
 }
 
 #endif /* expression_tree_hpp */

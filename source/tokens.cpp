@@ -201,15 +201,15 @@ namespace stork {
 		return std::get<reserved_token>(_value);
 	}
 	
-	std::string_view token::get_identifier() const {
-		return std::get<identifier>(_value).name;
+	const identifier& token::get_identifier() const {
+		return std::get<identifier>(_value);
 	}
 	
 	double token::get_number() const {
 		return std::get<double>(_value);
 	}
 	
-	std::string_view token::get_string() const {
+	const std::string& token::get_string() const {
 		return std::get<std::string>(_value);
 	}
 	
@@ -219,5 +219,12 @@ namespace stork {
 
 	size_t token::get_char_index() const {
 		return _char_index;
+	}
+}
+
+namespace std {
+	using namespace stork;
+	std::string to_string(reserved_token t) {
+		return std::string(token_string_map.find(t)->second);
 	}
 }

@@ -92,8 +92,8 @@ namespace stork {
 					case node_operation::band:
 					case node_operation::bor:
 					case node_operation::bxor:
-					case node_operation::sl:
-					case node_operation::sr:
+					case node_operation::bsl:
+					case node_operation::bsr:
 					case node_operation::eq:
 					case node_operation::ne:
 					case node_operation::lt:

@@ -29,7 +29,7 @@ int main() {
 					if (t.is_reserved_token()) {
 						std::cout << "Reserved: " << t.get_reserved_token() << std::endl;
 					} else if (t.is_identifier()) {
-						std::cout << "Identifier: " << t.get_identifier() << std::endl;
+						std::cout << "Identifier: " << t.get_identifier().name << std::endl;
 					} else if (t.is_number()) {
 						std::cout << "Number: " << t.get_number() << std::endl;
 					} else if (t.is_string()) {
