@@ -79,6 +79,7 @@ namespace stork {
 			message +=  source;
 			message += "' to '";
 			message +=  destination;
+			message += "'";
 		}
 		return semantic_error(message, line_number, char_index);
 	}
