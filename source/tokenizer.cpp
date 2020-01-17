@@ -203,5 +203,29 @@ namespace stork {
 			}
 		}
 	}
+	
+	tokens_iterator::tokens_iterator(push_back_stream& stream):
+		_stream(stream),
+		_current(eof(), 0, 0)
+	{
+		++(*this);
+	}
+
+	tokens_iterator& tokens_iterator::operator++() {
+		_current = tokenize(_stream);
+		return *this;
+	}
+	
+	const token& tokens_iterator::operator*() const {
+		return _current;
+	}
+	
+	const token* tokens_iterator::operator->() const {
+		return &_current;
+	}
+
+	tokens_iterator::operator bool() const {
+		return !_current.is_eof();
+	}
 }
 

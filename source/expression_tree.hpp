@@ -68,13 +68,8 @@ namespace stork {
 		std::vector<node_ptr> _children;
 		type_handle _type_id;
 		bool _lvalue;
-		type_handle _return_type_id;
-		bool _returns_lvalue;
 		size_t _line_number;
 		size_t _char_index;
-		
-		type_handle get_type_id() const;
-		bool is_lvalue() const;
 	public:
 		node(compiler_context& context, node_value value, std::vector<node_ptr> children, size_t line_number, size_t char_index);
 		
@@ -90,13 +85,13 @@ namespace stork {
 
 		const std::vector<node_ptr>& children() const;
 		
-		type_handle get_return_type_id() const;
-		bool returns_lvalue() const;
+		type_handle get_type_id() const;
+		bool is_lvalue() const;
 		
-		size_t line_number() const;
-		size_t char_index() const;
+		size_t get_line_number() const;
+		size_t get_char_index() const;
 		
-		void set_return_type(type_handle return_type_id, bool returns_lvalue);
+		void convert_to(type_handle type_id, bool lvalue);
 	};
 
 }

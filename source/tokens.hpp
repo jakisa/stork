@@ -104,8 +104,12 @@ namespace stork {
 		std::string name;
 	};
 	
+	bool operator==(const identifier& id1, const identifier& id2);
+	
 	struct eof{
 	};
+	
+	bool operator==(const eof&, const eof&);
 	
 	class token {
 	private:
@@ -130,11 +134,14 @@ namespace stork {
 		
 		size_t get_line_number() const;
 		size_t get_char_index() const;
+		
+		bool has_value(token_value value) const;
 	};
 }
 
 namespace std {
 	std::string to_string(stork::reserved_token t);
+	std::string to_string(const stork::token& t);
 }
 
 #endif /* tokens_hpp */

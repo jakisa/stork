@@ -11,6 +11,21 @@
 
 namespace stork {
 	token tokenize(push_back_stream& stream);
+	
+	class tokens_iterator {
+	private:
+		push_back_stream& _stream;
+		token _current;
+	public:
+		tokens_iterator(push_back_stream& stream);
+		
+		const token& operator*() const;
+		const token* operator->() const;
+		
+		tokens_iterator& operator++();
+		
+		explicit operator bool() const;
+	};
 }
 
 

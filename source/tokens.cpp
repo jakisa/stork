@@ -220,11 +220,36 @@ namespace stork {
 	size_t token::get_char_index() const {
 		return _char_index;
 	}
+	
+	bool token::has_value(token_value value) const {
+		return _value == value;
+	}
+	
+	bool operator==(const identifier& id1, const identifier& id2) {
+		return id1.name == id2.name;
+	}
+	
+	bool operator==(const eof&, const eof&) {
+		return true;
+	}
 }
 
 namespace std {
 	using namespace stork;
 	std::string to_string(reserved_token t) {
 		return std::string(token_string_map.find(t)->second);
+	}
+	
+	std::string to_string(const token& t) {
+		if (t.is_number()) {
+			return std::to_string(t.get_number());
+		}
+		if (t.is_string()) {
+			return t.get_string();
+		}
+		if (t.is_identifier()) {
+			return t.get_identifier().name;
+		}
+		return std::to_string(t.get_reserved_token());
 	}
 }
