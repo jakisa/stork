@@ -132,7 +132,6 @@ namespace stork {
 						}
 					}
 				}
-				c = stream();
 			}
 			stream.push_back(c);
 			throw parsing_error("Expected closing '\"'", stream.line_number(), stream.char_index());
