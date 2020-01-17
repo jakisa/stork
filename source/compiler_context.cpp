@@ -82,8 +82,10 @@ namespace stork{
 	}
 	
 	const identifier_info* compiler_context::find(const std::string& name) const {
-		if (const identifier_info* ret = _locals->find(name)) {
-			return ret;
+		if (_locals) {
+			if (const identifier_info* ret = _locals->find(name)) {
+				return ret;
+			}
 		}
 		return _globals.find(name);
 	}

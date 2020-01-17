@@ -165,6 +165,12 @@ namespace stork {
 								                     _line_number, _char_index);
 							}
 							for (size_t i = 0; i < ft->param_type_id.size(); ++i) {
+								if (_children[i+1]->is_lvalue() && !ft->param_type_id[i].by_ref) {
+									throw semantic_error(
+										"Function doesn't receive the argument by reference",
+										_children[i+1]->get_line_number(), _children[i+1]->get_char_index()
+									);
+								}
 								_children[i+1]->convert_to(ft->param_type_id[i].type_id, ft->param_type_id[i].by_ref);
 							}
 						} else {
@@ -175,6 +181,10 @@ namespace stork {
 				}
 			}
 		},_value);
+	}
+	
+	const node_value& node::get_value() const {
+		return _value;
 	}
 		
 	bool node::is_node_operation() const {
@@ -209,7 +219,7 @@ namespace stork {
 		return std::get<std::string>(_value);
 	}
 	
-	const std::vector<node_ptr>& node::children() const {
+	const std::vector<node_ptr>& node::get_children() const {
 		return _children;
 	}
 	

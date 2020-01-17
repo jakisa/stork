@@ -1,6 +1,7 @@
 #include "tokens.hpp"
 #include "lookup.hpp"
 #include <string_view>
+#include "helpers.hpp"
 
 namespace stork {
 	namespace {
@@ -103,11 +104,6 @@ namespace stork {
 			}
 			return lookup<reserved_token, std::string_view>(std::move(container));
 		})();
-	}
-	
-	std::ostream& operator<<(std::ostream& os, reserved_token t) {
-		os << token_string_map.find(t)->second;
-		return os;
 	}
 	
 	std::optional<reserved_token> get_keyword(std::string_view word) {
@@ -213,6 +209,10 @@ namespace stork {
 		return std::get<std::string>(_value);
 	}
 	
+	const token_value& token::get_value() const {
+		return _value;
+	}
+	
 	size_t token::get_line_number() const {
 		return _line_number;
 	}
@@ -229,8 +229,16 @@ namespace stork {
 		return id1.name == id2.name;
 	}
 	
+	bool operator!=(const identifier& id1, const identifier& id2) {
+		return id1.name != id2.name;
+	}
+	
 	bool operator==(const eof&, const eof&) {
 		return true;
+	}
+	
+	bool operator!=(const eof&, const eof&) {
+		return false;
 	}
 }
 
@@ -241,15 +249,22 @@ namespace std {
 	}
 	
 	std::string to_string(const token& t) {
-		if (t.is_number()) {
-			return std::to_string(t.get_number());
-		}
-		if (t.is_string()) {
-			return t.get_string();
-		}
-		if (t.is_identifier()) {
-			return t.get_identifier().name;
-		}
-		return std::to_string(t.get_reserved_token());
+		return std::visit(overloaded{
+			[](reserved_token rt) {
+				return to_string(rt);
+			},
+			[](double d) {
+				return to_string(d);
+			},
+			[](const std::string& str) {
+				return str;
+			},
+			[](const identifier& id) {
+				return id.name;
+			},
+			[](eof) {
+				return std::string("<EOF>");
+			}
+		}, t.get_value());
 	}
 }

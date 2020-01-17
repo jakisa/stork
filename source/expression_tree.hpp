@@ -61,9 +61,10 @@ namespace stork {
 	struct node;
 	using node_ptr=std::unique_ptr<node>;
 	
+	using node_value=std::variant<node_operation, std::string, double, identifier>;
+	
 	struct node {
 	private:
-		using node_value=std::variant<node_operation, std::string, double, identifier>;
 		node_value _value;
 		std::vector<node_ptr> _children;
 		type_handle _type_id;
@@ -72,6 +73,8 @@ namespace stork {
 		size_t _char_index;
 	public:
 		node(compiler_context& context, node_value value, std::vector<node_ptr> children, size_t line_number, size_t char_index);
+		
+		const node_value& get_value() const;
 		
 		bool is_node_operation() const;
 		bool is_identifier() const;
@@ -83,7 +86,7 @@ namespace stork {
 		double get_number() const;
 		std::string_view get_string() const;
 
-		const std::vector<node_ptr>& children() const;
+		const std::vector<node_ptr>& get_children() const;
 		
 		type_handle get_type_id() const;
 		bool is_lvalue() const;

@@ -105,16 +105,18 @@ namespace stork {
 	};
 	
 	bool operator==(const identifier& id1, const identifier& id2);
+	bool operator!=(const identifier& id1, const identifier& id2);
 	
 	struct eof{
 	};
 	
 	bool operator==(const eof&, const eof&);
-	
+	bool operator!=(const eof&, const eof&);
+
+	using token_value = std::variant<reserved_token, identifier, double, std::string, eof>;
+
 	class token {
 	private:
-		using token_value = std::variant<reserved_token, identifier, double, std::string, eof>;
-
 		token_value _value;
 		size_t _line_number;
 		size_t _char_index;
@@ -131,10 +133,11 @@ namespace stork {
 		const identifier& get_identifier() const;
 		double get_number() const;
 		const std::string& get_string() const;
+		const token_value& get_value() const;
 		
 		size_t get_line_number() const;
 		size_t get_char_index() const;
-		
+
 		bool has_value(token_value value) const;
 	};
 }

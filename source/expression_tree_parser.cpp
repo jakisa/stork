@@ -269,7 +269,7 @@ namespace stork {
 		}
 		
 		void pop_one_operator(
-			std::stack<operator_info> operator_stack, std::stack<node_ptr>& operand_stack,
+			std::stack<operator_info>& operator_stack, std::stack<node_ptr>& operand_stack,
 			compiler_context& context, size_t line_number, size_t char_index
 		) {
 			if (operand_stack.size() < operator_stack.top().number_of_operands) {
@@ -277,23 +277,23 @@ namespace stork {
 			}
 			
 			std::vector<node_ptr> operands;
-			operands.reserve(operator_stack.top().number_of_operands);
-			
-			for (int i = operator_stack.top().number_of_operands - 1; i >= 0; --i) {
-				operands[i] = std::move(operand_stack.top());
-				operand_stack.pop();
-			}
+			operands.resize(operator_stack.top().number_of_operands);
 			
 			if (operator_stack.top().precedence != operator_precedence::prefix) {
 				operator_stack.top().line_number = operand_stack.top()->get_line_number();
 				operator_stack.top().char_index = operand_stack.top()->get_char_index();
 			}
 			
+			for (int i = operator_stack.top().number_of_operands - 1; i >= 0; --i) {
+				operands[i] = std::move(operand_stack.top());
+				operand_stack.pop();
+			}
+			
 			operand_stack.push(std::make_unique<node>(
-				context, operator_stack.top().operation, std::vector<node_ptr>(), operator_stack.top().line_number, operator_stack.top().char_index)
+				context, operator_stack.top().operation, std::move(operands), operator_stack.top().line_number, operator_stack.top().char_index)
 			);
 			
-			operand_stack.pop();
+			operator_stack.pop();
 		}
 		
 		node_ptr parse_expression_tree_impl(compiler_context& context, tokens_iterator& it, bool allow_comma, bool allow_empty) {
