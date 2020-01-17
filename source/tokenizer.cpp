@@ -42,6 +42,12 @@ namespace stork {
 			do {
 				word.push_back(char(c));
 				c = stream();
+				
+				if (c == '.' && word.back() == '.') {
+					stream.push_back(word.back());
+					word.pop_back();
+					break;
+				}
 			} while (get_character_type(c) == character_type::alphanum || (is_number && c == '.'));
 			
 			stream.push_back(c);

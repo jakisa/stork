@@ -140,6 +140,7 @@ namespace stork {
 							throw semantic_error(to_string(_children[0]->_type_id) + " is not indexable",
 							                     _line_number, _char_index);
 						}
+						break;
 					case node_operation::ternary:
 						_children[0]->convert_to(number_handle, false);
 						if (is_convertible(
@@ -154,6 +155,7 @@ namespace stork {
 							_type_id = _children[2]->get_type_id();
 							_lvalue = _children[2]->is_lvalue();
 						}
+						break;
 					case node_operation::call:
 						if (const function_type* ft = std::get_if<function_type>(_children[0]->get_type_id())) {
 							_type_id = ft->return_type_id;
