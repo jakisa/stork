@@ -27,19 +27,22 @@ namespace stork {
 	};
 	
 	class identifier_lookup {
-	protected:
+	private:
 		std::unordered_map<std::string, identifier_info> _identifiers;
+	protected:
+		const identifier_info* insert_identifier(std::string name, type_handle type_id, size_t index, bool is_global, bool is_constant);
+		size_t identifiers_size() const;
 	public:
 		virtual const identifier_info* find(const std::string& name) const;
 		
-		virtual void create_identifier(std::string name, type_handle type_id, bool is_constant) = 0;
+		virtual const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant) = 0;
 		
 		virtual ~identifier_lookup();
 	};
 	
 	class global_identifier_lookup: public identifier_lookup {
 	public:
-		void create_identifier(std::string name, type_handle type_id, bool is_constant) override;
+		const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant) override;
 	};
 	
 	class local_identifier_lookup: public identifier_lookup {
@@ -51,7 +54,7 @@ namespace stork {
 		
 		const identifier_info* find(const std::string& name) const override;
 
-		void create_identifier(std::string name, type_handle type_id, bool is_constant) override;
+		const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant) override;
 		
 		std::unique_ptr<local_identifier_lookup> detach_parent();
 	};
@@ -62,7 +65,7 @@ namespace stork {
 	public:
 		function_identifier_lookup();
 		
-		void create_param(std::string name, type_handle type_id);
+		const identifier_info* create_param(std::string name, type_handle type_id);
 	};
 	
 	class compiler_context {
@@ -78,9 +81,9 @@ namespace stork {
 		
 		const identifier_info* find(const std::string& name) const;
 		
-		void create_identifier(std::string name, type_handle type_id, bool is_constant);
+		const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant);
 		
-		void create_param(std::string name, type_handle type_id);
+		const identifier_info* create_param(std::string name, type_handle type_id);
 		
 		void enter_scope();
 		
