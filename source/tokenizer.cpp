@@ -168,44 +168,44 @@ namespace stork {
 			stream.push_back(c);
 			throw parsing_error("Expected closing '*/'", stream.line_number(), stream.char_index());
 		}
-	}
 	
-	token tokenize(push_back_stream& stream) {
-		while (true) {
-			size_t line_number = stream.line_number();
-			size_t char_index = stream.char_index();
-			int c = stream();
-			switch (get_character_type(c)) {
-				case character_type::eof:
-					return {eof(), line_number, char_index};
-				case character_type::space:
-					continue;
-				case character_type::alphanum:
-					stream.push_back(c);
-					return fetch_word(stream);
-				case character_type::punct:
-					switch (c) {
-						case '"':
-							return fetch_string(stream);
-						case '/':
-						{
-							char c1 = stream();
-							switch(c1) {
-								case '/':
-									skip_line_comment(stream);
-									continue;
-								case '*':
-									skip_block_comment(stream);
-									continue;
-								default:
-									stream.push_back(c1);
+		token tokenize(push_back_stream& stream) {
+			while (true) {
+				size_t line_number = stream.line_number();
+				size_t char_index = stream.char_index();
+				int c = stream();
+				switch (get_character_type(c)) {
+					case character_type::eof:
+						return {eof(), line_number, char_index};
+					case character_type::space:
+						continue;
+					case character_type::alphanum:
+						stream.push_back(c);
+						return fetch_word(stream);
+					case character_type::punct:
+						switch (c) {
+							case '"':
+								return fetch_string(stream);
+							case '/':
+							{
+								char c1 = stream();
+								switch(c1) {
+									case '/':
+										skip_line_comment(stream);
+										continue;
+									case '*':
+										skip_block_comment(stream);
+										continue;
+									default:
+										stream.push_back(c1);
+								}
 							}
+							default:
+								stream.push_back(c);
+								return fetch_operator(stream);
 						}
-						default:
-							stream.push_back(c);
-							return fetch_operator(stream);
-					}
-					break;
+						break;
+				}
 			}
 		}
 	}

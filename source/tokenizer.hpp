@@ -10,8 +10,6 @@
 #include "push_back_stream.hpp"
 
 namespace stork {
-	token tokenize(push_back_stream& stream);
-	
 	class tokens_iterator {
 	private:
 		push_back_stream& _stream;
