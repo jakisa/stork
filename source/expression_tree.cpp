@@ -53,22 +53,6 @@ namespace stork {
 						_lvalue = true;
 						_children[0]->convert_to(number_handle, true);
 						break;
-					case node_operation::add_assign:
-					case node_operation::sub_assign:
-					case node_operation::mul_assign:
-					case node_operation::div_assign:
-					case node_operation::idiv_assign:
-					case node_operation::mod_assign:
-					case node_operation::band_assign:
-					case node_operation::bor_assign:
-					case node_operation::bxor_assign:
-					case node_operation::bsl_assign:
-					case node_operation::bsr_assign:
-						_type_id = number_handle;
-						_lvalue = true;
-						_children[0]->convert_to(number_handle, true);
-						_children[1]->convert_to(number_handle, false);
-						break;
 					case node_operation::postinc:
 					case node_operation::postdec:
 						_type_id = number_handle;
@@ -118,6 +102,22 @@ namespace stork {
 						_lvalue = true;
 						_children[0]->convert_to(_type_id, true);
 						_children[1]->convert_to(_type_id, false);
+						break;
+					case node_operation::add_assign:
+					case node_operation::sub_assign:
+					case node_operation::mul_assign:
+					case node_operation::div_assign:
+					case node_operation::idiv_assign:
+					case node_operation::mod_assign:
+					case node_operation::band_assign:
+					case node_operation::bor_assign:
+					case node_operation::bxor_assign:
+					case node_operation::bsl_assign:
+					case node_operation::bsr_assign:
+						_type_id = number_handle;
+						_lvalue = true;
+						_children[0]->convert_to(number_handle, true);
+						_children[1]->convert_to(number_handle, false);
 						break;
 					case node_operation::concat_assign:
 						_type_id = string_handle;
