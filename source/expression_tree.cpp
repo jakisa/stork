@@ -78,18 +78,28 @@ namespace stork {
 					case node_operation::bxor:
 					case node_operation::bsl:
 					case node_operation::bsr:
-					case node_operation::eq:
-					case node_operation::ne:
-					case node_operation::lt:
-					case node_operation::gt:
-					case node_operation::le:
-					case node_operation::ge:
 					case node_operation::land:
 					case node_operation::lor:
 						_type_id = number_handle;
 						_lvalue = false;
 						_children[0]->convert_to(number_handle, false);
 						_children[1]->convert_to(number_handle, false);
+						break;
+					case node_operation::eq:
+					case node_operation::ne:
+					case node_operation::lt:
+					case node_operation::gt:
+					case node_operation::le:
+					case node_operation::ge:
+						_type_id = number_handle;
+						_lvalue = false;
+						if (!_children[0]->is_number() || !_children[1]->is_number()) {
+							_children[0]->convert_to(string_handle, false);
+							_children[1]->convert_to(string_handle, false);
+						} else {
+							_children[0]->convert_to(number_handle, false);
+							_children[1]->convert_to(number_handle, false);
+						}
 						break;
 					case node_operation::concat:
 						_type_id = context.get_handle(simple_type::string);
