@@ -2,13 +2,6 @@
 #include <type_traits>
 
 namespace stork {
-	using string_expression = expression<string>;
-	using variable_expression = expression<variable_ptr>;
-	using number_variable_expression = expression<number_variable_ptr>;
-	using string_variable_expression = expression<string_variable_ptr>;
-	using array_variable_expression = expression<array_variable_ptr>;
-	using function_variable_expression = expression<function_variable_ptr>;
-
 	namespace {
 		template<typename T>
 		struct remove_cvref {
