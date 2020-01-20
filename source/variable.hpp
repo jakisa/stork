@@ -38,9 +38,6 @@ namespace stork {
 	using array_variable_cptr = std::shared_ptr<const array_variable>;
 	using function_variable_cptr = std::shared_ptr<function>;
 	
-	string to_string(number n);
-	string to_string(number_variable_cptr v);
-	
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
 		variable(const variable&) = delete;
