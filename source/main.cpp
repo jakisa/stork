@@ -8,7 +8,7 @@
 #include "helpers.hpp"
 
 // When debugging in Xcode, setting the breakpoint will send eof to stdin. We need to ignore it.
-#define XCODE_DEBUG_HACK
+// #define XCODE_DEBUG_HACK
 
 namespace {
 	using namespace stork;
