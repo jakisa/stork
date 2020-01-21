@@ -3,182 +3,131 @@
 #include "tokenizer.hpp"
 #include "errors.hpp"
 #include "compiler_context.hpp"
-#include "expression_tree.hpp"
-#include "expression_tree_parser.hpp"
-#include "helpers.hpp"
+#include "expression.hpp"
 
 // When debugging in Xcode, setting the breakpoint will send eof to stdin. We need to ignore it.
-// #define XCODE_DEBUG_HACK
+#define XCODE_DEBUG_HACK
 
 namespace {
 	using namespace stork;
-
-	std::ostream& operator<<(std::ostream& stream, const node_ptr& node) {
-		std::visit(overloaded{
-			[&](double d) {
-				stream << d;
-			},
-			[&](const std::string& str) {
-				stream << str;
-			},
-			[&](const identifier& id) {
-				stream << id.name;
-			},
-			[&](node_operation op) {
-				switch (op) {
-					case node_operation::param:
-						stream << node->get_children()[0];
-						break;
-					case node_operation::preinc:
-						stream << "(++" << node->get_children()[0] << ")";
-						break;
-					case node_operation::predec:
-						stream << "(--" << node->get_children()[0] << ")";
-						break;
-					case node_operation::postinc:
-						stream << "(" << node->get_children()[0] << "++)";
-						break;
-					case node_operation::postdec:
-						stream << "(" << node->get_children()[0] << "--)";
-						break;
-					case node_operation::positive:
-						stream << "(+" << node->get_children()[0] << ")";
-						break;
-					case node_operation::negative:
-						stream << "(-" << node->get_children()[0] << ")";
-						break;
-					case node_operation::bnot:
-						stream << "(~" << node->get_children()[0] << ")";
-						break;
-					case node_operation::lnot:
-						stream << "(!" << node->get_children()[0] << ")";
-						break;
-					case node_operation::add:
-						stream << "(" << node->get_children()[0] << "+" << node->get_children()[1] << ")";
-						break;
-					case node_operation::sub:
-						stream << "(" << node->get_children()[0] << "-" << node->get_children()[1] << ")";
-						break;
-					case node_operation::mul:
-						stream << "(" << node->get_children()[0] << "*" << node->get_children()[1] << ")";
-						break;
-					case node_operation::div:
-						stream << "(" << node->get_children()[0] << "/" << node->get_children()[1] << ")";
-						break;
-					case node_operation::idiv:
-						stream << "(" << node->get_children()[0] << "\\" << node->get_children()[1] << ")";
-						break;
-					case node_operation::mod:
-						stream << "(" << node->get_children()[0] << "%" << node->get_children()[1] << ")";
-						break;
-					case node_operation::band:
-						stream << "(" << node->get_children()[0] << "&" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bor:
-						stream << "(" << node->get_children()[0] << "|" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bxor:
-						stream << "(" << node->get_children()[0] << "^" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bsl:
-						stream << "(" << node->get_children()[0] << "<<" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bsr:
-						stream << "(" << node->get_children()[0] << ">>" << node->get_children()[1] << ")";
-						break;
-					case node_operation::concat:
-						stream << "(" << node->get_children()[0] << ".." << node->get_children()[1] << ")";
-						break;
-					case node_operation::assign:
-						stream << "(" << node->get_children()[0] << "=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::add_assign:
-						stream << "(" << node->get_children()[0] << "+=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::sub_assign:
-						stream << "(" << node->get_children()[0] << "-=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::mul_assign:
-						stream << "(" << node->get_children()[0] << "*=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::div_assign:
-						stream << "(" << node->get_children()[0] << "/=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::idiv_assign:
-						stream << "(" << node->get_children()[0] << "\\=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::mod_assign:
-						stream << "(" << node->get_children()[0] << "%=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::band_assign:
-						stream << "(" << node->get_children()[0] << "&=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bor_assign:
-						stream << "(" << node->get_children()[0] << "|=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bxor_assign:
-						stream << "(" << node->get_children()[0] << "^=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bsl_assign:
-						stream << "(" << node->get_children()[0] << "<<=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::bsr_assign:
-						stream << "(" << node->get_children()[0] << ">>=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::concat_assign:
-						stream << "(" << node->get_children()[0] << "..=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::eq:
-						stream << "(" << node->get_children()[0] << "==" << node->get_children()[1] << ")";
-						break;
-					case node_operation::ne:
-						stream << "(" << node->get_children()[0] << "!=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::lt:
-						stream << "(" << node->get_children()[0] << "<" << node->get_children()[1] << ")";
-						break;
-					case node_operation::gt:
-						stream << "(" << node->get_children()[0] << ">" << node->get_children()[1] << ")";
-						break;
-					case node_operation::le:
-						stream << "(" << node->get_children()[0] << "<=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::ge:
-						stream << "(" << node->get_children()[0] << ">=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::comma:
-						stream << "(" << node->get_children()[0] << "," << node->get_children()[1] << ")";
-						break;
-					case node_operation::land:
-						stream << "(" << node->get_children()[0] << "&&" << node->get_children()[1] << ")";
-						break;
-					case node_operation::lor:
-						stream << "(" << node->get_children()[0] << "|=" << node->get_children()[1] << ")";
-						break;
-					case node_operation::index:
-						stream << node->get_children()[0] << "[" << node->get_children()[1] << "]";
-						break;
-					case node_operation::ternary:
-						stream << "(" << node->get_children()[0] << "?" << node->get_children()[1] << ":" << node->get_children()[2];
-						break;
-					case node_operation::call:
-						stream << node->get_children()[0] << "(";
-						{
-							const char* separator = "";
-							for (size_t i = 1; i < node->get_children().size(); ++i) {
-								stream << separator << (node->get_children()[i]->is_lvalue() ? "&" : "") << node->get_children()[i];
-								separator = ",";
-							}
-						}
-						stream << ")";
-						break;
-				}
-			},
-			[&](const auto&) {
-			}
-		}, node->get_value());
+	
+	void create_identifiers(compiler_context& context) {
+		context.create_identifier("a", type_registry::get_number_handle(), false);
+		context.create_identifier("b", type_registry::get_number_handle(), false);
+		context.create_identifier("c", type_registry::get_number_handle(), false);
+		context.create_identifier("d", type_registry::get_number_handle(), false);
+		context.create_identifier("e", type_registry::get_number_handle(), false);
+		context.create_identifier("f", type_registry::get_number_handle(), false);
 		
-		return stream;
+		context.create_identifier("str1", type_registry::get_string_handle(), false);
+		context.create_identifier("str2", type_registry::get_string_handle(), false);
+		context.create_identifier("str3", type_registry::get_string_handle(), false);
+		context.create_identifier("str4", type_registry::get_string_handle(), false);
+		context.create_identifier("str5", type_registry::get_string_handle(), false);
+		context.create_identifier("str6", type_registry::get_string_handle(), false);
+		
+		function_type ft1;
+		ft1.return_type_id = type_registry::get_number_handle();
+		ft1.param_type_id.push_back({type_registry::get_number_handle(), false});
+		ft1.param_type_id.push_back({type_registry::get_number_handle(), false});
+		
+		function_type ft2;
+		ft2.return_type_id = type_registry::get_string_handle();
+		ft2.param_type_id.push_back({type_registry::get_string_handle(), true});
+		ft2.param_type_id.push_back({type_registry::get_string_handle(), false});
+		
+		context.create_identifier("add", context.get_handle(ft1), true);
+		context.create_identifier("concat_to", context.get_handle(ft2), true);
+		
+		context.create_identifier("numarr", context.get_handle(array_type{type_registry::get_number_handle()}), false);
+		context.create_identifier("strarr", context.get_handle(array_type{type_registry::get_string_handle()}), false);
+	}
+	
+	void add(runtime_context& ctx) {
+		lnumber a = ctx.local(-1)->static_pointer_downcast<lnumber>();
+		lnumber b = ctx.local(-2)->static_pointer_downcast<lnumber>();
+		
+		ctx.retval() = std::make_shared<variable_impl<number> >(a->value + b->value);
+	}
+	
+	void concat_to(runtime_context& ctx) {
+		lstring str1 = ctx.local(-1)->static_pointer_downcast<lstring>();
+		lstring str2 = ctx.local(-2)->static_pointer_downcast<lstring>();
+		
+		str1->value = std::make_shared<std::string>(*str1->value + *str2->value);
+		
+		ctx.retval() = std::make_shared<variable_impl<string> >(str1->value);
+	}
+	
+	void prepare_runtime_context(runtime_context& context) {
+		context.global(0) = std::make_shared<variable_impl<number> >(0);
+		context.global(1) = std::make_shared<variable_impl<number> >(0);
+		context.global(2) = std::make_shared<variable_impl<number> >(0);
+		context.global(3) = std::make_shared<variable_impl<number> >(0);
+		context.global(4) = std::make_shared<variable_impl<number> >(0);
+		context.global(5) = std::make_shared<variable_impl<number> >(0);
+		
+		context.global(6) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+		context.global(7) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+		context.global(8) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+		context.global(9) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+		context.global(10) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+		context.global(11) = std::make_shared<variable_impl<string> >(std::make_shared<std::string>(""));
+	
+		context.global(12) = std::make_shared<variable_impl<function> >(&add);
+		context.global(13) = std::make_shared<variable_impl<function> >(&concat_to);
+		
+		array numbers;
+		numbers.push_back(std::make_shared<variable_impl<number> >(1));
+		numbers.push_back(std::make_shared<variable_impl<number> >(1));
+		numbers.push_back(std::make_shared<variable_impl<number> >(2));
+		numbers.push_back(std::make_shared<variable_impl<number> >(3));
+		numbers.push_back(std::make_shared<variable_impl<number> >(5));
+		context.global(14) = std::make_shared<variable_impl<array> >(std::move(numbers));
+		
+		array strings;
+		strings.push_back(std::make_shared<variable_impl<string> >(std::make_shared<std::string>("M")));
+		strings.push_back(std::make_shared<variable_impl<string> >(std::make_shared<std::string>("V")));
+		strings.push_back(std::make_shared<variable_impl<string> >(std::make_shared<std::string>("E")));
+		strings.push_back(std::make_shared<variable_impl<string> >(std::make_shared<std::string>("M")));
+		strings.push_back(std::make_shared<variable_impl<string> >(std::make_shared<std::string>("J")));
+		context.global(15) = std::make_shared<variable_impl<array> >(std::move(strings));
+	}
+	
+	void trace_runtime_context(runtime_context& context) {
+		std::cout << "a = " << context.global(0)->static_pointer_downcast<lnumber>()->value << std::endl;
+		std::cout << "b = " << context.global(1)->static_pointer_downcast<lnumber>()->value << std::endl;
+		std::cout << "c = " << context.global(2)->static_pointer_downcast<lnumber>()->value << std::endl;
+		std::cout << "d = " << context.global(3)->static_pointer_downcast<lnumber>()->value << std::endl;
+		std::cout << "e = " << context.global(4)->static_pointer_downcast<lnumber>()->value << std::endl;
+		std::cout << "f = " << context.global(5)->static_pointer_downcast<lnumber>()->value << std::endl;
+		
+		std::cout << "str1 = " << *context.global(6)->static_pointer_downcast<lstring>()->value << std::endl;
+		std::cout << "str2 = " << *context.global(7)->static_pointer_downcast<lstring>()->value << std::endl;
+		std::cout << "str3 = " << *context.global(8)->static_pointer_downcast<lstring>()->value << std::endl;
+		std::cout << "str4 = " << *context.global(9)->static_pointer_downcast<lstring>()->value << std::endl;
+		std::cout << "str5 = " << *context.global(10)->static_pointer_downcast<lstring>()->value << std::endl;
+		std::cout << "str6 = " << *context.global(11)->static_pointer_downcast<lstring>()->value << std::endl;
+		
+		std::cout << "numarr = [";
+		{
+			const char* separator = "";
+			for (const variable_ptr& v : context.global(14)->static_pointer_downcast<larray>()->value) {
+				std::cout << separator << v->static_pointer_downcast<lnumber>()->value;
+				separator = ", ";
+			}
+			std::cout << "]\n";
+		}
+		
+		std::cout << "strarr = [";
+		{
+			const char* separator = "";
+			for (const variable_ptr& v : context.global(15)->static_pointer_downcast<larray>()->value) {
+				std::cout << separator << *(v->static_pointer_downcast<lstring>()->value);
+				separator = ", ";
+			}
+			std::cout << "]\n";
+		}
 	}
 }
 
@@ -187,36 +136,11 @@ int main() {
 	std::cerr << "Enter the expression, or newline to exit." << std::endl;
 	std::string line;
 	
-	compiler_context context;
-	context.create_identifier("a", type_registry::get_number_handle(), false);
-	context.create_identifier("b", type_registry::get_number_handle(), false);
-	context.create_identifier("c", type_registry::get_number_handle(), false);
-	context.create_identifier("d", type_registry::get_number_handle(), true);
-	context.create_identifier("e", type_registry::get_number_handle(), true);
-	context.create_identifier("f", type_registry::get_number_handle(), true);
+	compiler_context ccontext;
+	create_identifiers(ccontext);
 	
-	context.create_identifier("str1", type_registry::get_string_handle(), false);
-	context.create_identifier("str2", type_registry::get_string_handle(), false);
-	context.create_identifier("str3", type_registry::get_string_handle(), false);
-	context.create_identifier("str4", type_registry::get_string_handle(), true);
-	context.create_identifier("str5", type_registry::get_string_handle(), true);
-	context.create_identifier("str6", type_registry::get_string_handle(), true);
-	
-	function_type ft1;
-	ft1.return_type_id = type_registry::get_number_handle();
-	ft1.param_type_id.push_back({type_registry::get_number_handle(), false});
-	ft1.param_type_id.push_back({type_registry::get_number_handle(), false});
-	
-	function_type ft2;
-	ft2.return_type_id = type_registry::get_string_handle();
-	ft2.param_type_id.push_back({type_registry::get_string_handle(), true});
-	ft2.param_type_id.push_back({type_registry::get_string_handle(), false});
-	
-	context.create_identifier("add", context.get_handle(ft1), true);
-	context.create_identifier("concat_to", context.get_handle(ft2), true);
-	
-	context.create_identifier("numarr", context.get_handle(array_type{type_registry::get_number_handle()}), false);
-	context.create_identifier("strarr", context.get_handle(array_type{type_registry::get_string_handle()}), false);
+	runtime_context rcontext(16);
+	prepare_runtime_context(rcontext);
 	
 	do {
 		if (std::cin.eof()){
@@ -235,8 +159,11 @@ int main() {
 				
 				tokens_iterator it(stream);
 				
-				node_ptr n = parse_expression_tree(context, it, type_registry::get_void_handle(), false, true, false);
-				std::cout << "Expression parsed as: " << n << std::endl;
+				expression<void>::ptr exp = build_void_expression(ccontext, it);
+				
+				exp->evaluate(rcontext);
+			
+				trace_runtime_context(rcontext);
 			} catch (const error& err) {
 				strstream.clear();
 				strstream.seekg(0);

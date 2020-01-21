@@ -600,8 +600,8 @@ namespace stork {
 											);\
 										} else if (child->get_type_id() == type_registry::get_string_handle()) {\
 											arguments.push_back(\
-												std::make_unique<box_expression<number> >(\
-													expression_builder<number>::build_expression(child, context)\
+												std::make_unique<box_expression<string> >(\
+													expression_builder<string>::build_expression(child, context)\
 												)\
 											);\
 										} else {\
@@ -626,7 +626,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id() != type_registry::get_number_handle() || np->is_lvalue()) {
+				if (np->get_type_id_original() != type_registry::get_number_handle() || np->is_lvalue_original()) {
 					return nullptr;
 				}
 			
@@ -685,7 +685,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 			
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id() != type_registry::get_string_handle() || np->is_lvalue()) {
+				if (np->get_type_id_original() != type_registry::get_string_handle() || np->is_lvalue_original()) {
 					return nullptr;
 				}
 				
@@ -726,7 +726,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id() != type_registry::get_number_handle() || !np->is_lvalue()) {
+				if (np->get_type_id_original() != type_registry::get_number_handle() || !np->is_lvalue_original()) {
 					return nullptr;
 				}
 			
@@ -782,7 +782,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id() != type_registry::get_string_handle() || !np->is_lvalue()) {
+				if (np->get_type_id_original() != type_registry::get_string_handle() || !np->is_lvalue_original()) {
 					return nullptr;
 				}
 			
@@ -826,7 +826,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (!std::holds_alternative<function_type>(*np->get_type_id())) {
+				if (!std::holds_alternative<function_type>(*np->get_type_id_original())) {
 					return nullptr;
 				}
 			
@@ -869,7 +869,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (!std::holds_alternative<array_type>(*np->get_type_id())) {
+				if (!std::holds_alternative<array_type>(*np->get_type_id_original())) {
 					return nullptr;
 				}
 			

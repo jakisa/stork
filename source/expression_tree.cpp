@@ -197,6 +197,9 @@ namespace stork {
 				}
 			}
 		},_value);
+		
+		_type_id_original = _type_id;
+		_lvalue_original = _lvalue;
 	}
 	
 	const node_value& node::get_value() const {
@@ -245,6 +248,14 @@ namespace stork {
 	
 	bool node::is_lvalue() const {
 		return _lvalue;
+	}
+	
+	type_handle node::get_type_id_original() const {
+		return _type_id_original;
+	}
+
+	bool node::is_lvalue_original() const {
+		return _lvalue_original;
 	}
 	
 	size_t node::get_line_number() const {
