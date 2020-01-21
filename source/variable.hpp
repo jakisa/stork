@@ -11,8 +11,7 @@ namespace stork {
 	class variable;
 	
 	using variable_ptr = std::shared_ptr<variable>;
-	using variable_cptr = std::shared_ptr<const variable>;
-	
+
 	template <typename T>
 	class variable_impl;
 	
@@ -28,15 +27,11 @@ namespace stork {
 	using array_variable = variable_impl<array>;
 	using function_variable = variable_impl<function>;
 	
-	using number_variable_ptr = std::shared_ptr<number_variable>;
-	using string_variable_ptr = std::shared_ptr<string_variable>;
-	using array_variable_ptr = std::shared_ptr<array_variable>;
-	using function_variable_ptr = std::shared_ptr<function_variable>;
-	
-	using number_variable_cptr = std::shared_ptr<const number_variable>;
-	using string_variable_cptr = std::shared_ptr<const string_variable>;
-	using array_variable_cptr = std::shared_ptr<const array_variable>;
-	using function_variable_cptr = std::shared_ptr<function>;
+	using lvalue = variable_ptr;
+	using lnumber = std::shared_ptr<number_variable>;
+	using lstring = std::shared_ptr<string_variable>;
+	using larray = std::shared_ptr<array_variable>;
+	using lfunction = std::shared_ptr<function_variable>;
 	
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
@@ -60,47 +55,31 @@ namespace stork {
 				variable_impl<const typename T::element_type::value_type>
 			>(shared_from_this());
 		}
-	};
-
-	template<>
-	class variable_impl<number>: public variable {
-	public:
-		using value_type = number;
 		
-		value_type value;
-		
-		variable_impl(value_type value);
-	};
-
-	template<>
-	class variable_impl<string>: public variable {
-	public:
-		using value_type = string;
-		
-		value_type value;
-
-		variable_impl(value_type value);
+		virtual variable_ptr clone() const = 0;
 	};
 	
-	template<>
-	class variable_impl<array>: public variable {
+	template<typename T>
+	class variable_impl: public variable {
 	public:
-		using value_type = array;
+		using value_type = T;
 		
 		value_type value;
-
+		
 		variable_impl(value_type value);
+		
+		variable_ptr clone() const override;
 	};
 	
-	template<>
-	class variable_impl<function>: public variable {
-	public:
-		using value_type = function;
-		
-		value_type value;
-
-		variable_impl(value_type value);
-	};
+	number clone_variable_value(number value);
+	string clone_variable_value(const string& value);
+	function clone_variable_value(const function& value);
+	array clone_variable_value(const array& value);
+	
+	template <class T>
+	T clone_variable_value(const std::shared_ptr<variable_impl<T> >& v) {
+		return clone_variable_value(v->value);
+	}
 }
 
 #endif /* variable_hpp */
