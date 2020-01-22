@@ -35,7 +35,7 @@ namespace stork {
 	
 	variable_ptr runtime_context::end_function(size_t params) {
 		variable_ptr ret = std::move(_stack[_retval_idx.top()]);
-		_stack.resize(_retval_idx.top());
+		_stack.resize(_retval_idx.top() - params);
 		_retval_idx.pop();
 		return ret;
 	}
