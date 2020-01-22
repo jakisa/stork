@@ -26,6 +26,9 @@ namespace {
 			},
 			[&](node_operation op) {
 				switch (op) {
+					case node_operation::param:
+						stream << node->get_children()[0];
+						break;
 					case node_operation::preinc:
 						stream << "(++" << node->get_children()[0] << ")";
 						break;

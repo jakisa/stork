@@ -47,17 +47,21 @@ namespace stork {
 			},
 			[&](node_operation value){
 				switch (value) {
+					case node_operation::param:
+						_type_id = _children[0]->_type_id;
+						_lvalue = false;
+						break;
 					case node_operation::preinc:
 					case node_operation::predec:
 						_type_id = number_handle;
 						_lvalue = true;
-						_children[0]->convert_to(number_handle, true);
+						_children[0]->check_conversion(number_handle, true);
 						break;
 					case node_operation::postinc:
 					case node_operation::postdec:
 						_type_id = number_handle;
 						_lvalue = false;
-						_children[0]->convert_to(number_handle, true);
+						_children[0]->check_conversion(number_handle, true);
 						break;
 					case node_operation::positive:
 					case node_operation::negative:
@@ -65,7 +69,7 @@ namespace stork {
 					case node_operation::lnot:
 						_type_id = number_handle;
 						_lvalue = false;
-						_children[0]->convert_to(number_handle, false);
+						_children[0]->check_conversion(number_handle, false);
 						break;
 					case node_operation::add:
 					case node_operation::sub:
@@ -82,8 +86,8 @@ namespace stork {
 					case node_operation::lor:
 						_type_id = number_handle;
 						_lvalue = false;
-						_children[0]->convert_to(number_handle, false);
-						_children[1]->convert_to(number_handle, false);
+						_children[0]->check_conversion(number_handle, false);
+						_children[1]->check_conversion(number_handle, false);
 						break;
 					case node_operation::eq:
 					case node_operation::ne:
@@ -94,24 +98,24 @@ namespace stork {
 						_type_id = number_handle;
 						_lvalue = false;
 						if (!_children[0]->is_number() || !_children[1]->is_number()) {
-							_children[0]->convert_to(string_handle, false);
-							_children[1]->convert_to(string_handle, false);
+							_children[0]->check_conversion(string_handle, false);
+							_children[1]->check_conversion(string_handle, false);
 						} else {
-							_children[0]->convert_to(number_handle, false);
-							_children[1]->convert_to(number_handle, false);
+							_children[0]->check_conversion(number_handle, false);
+							_children[1]->check_conversion(number_handle, false);
 						}
 						break;
 					case node_operation::concat:
 						_type_id = context.get_handle(simple_type::string);
 						_lvalue = false;
-						_children[0]->convert_to(string_handle, false);
-						_children[1]->convert_to(string_handle, false);
+						_children[0]->check_conversion(string_handle, false);
+						_children[1]->check_conversion(string_handle, false);
 						break;
 					case node_operation::assign:
 						_type_id = _children[0]->get_type_id();
 						_lvalue = true;
-						_children[0]->convert_to(_type_id, true);
-						_children[1]->convert_to(_type_id, false);
+						_children[0]->check_conversion(_type_id, true);
+						_children[1]->check_conversion(_type_id, false);
 						break;
 					case node_operation::add_assign:
 					case node_operation::sub_assign:
@@ -126,18 +130,18 @@ namespace stork {
 					case node_operation::bsr_assign:
 						_type_id = number_handle;
 						_lvalue = true;
-						_children[0]->convert_to(number_handle, true);
-						_children[1]->convert_to(number_handle, false);
+						_children[0]->check_conversion(number_handle, true);
+						_children[1]->check_conversion(number_handle, false);
 						break;
 					case node_operation::concat_assign:
 						_type_id = string_handle;
 						_lvalue = true;
-						_children[0]->convert_to(string_handle, true);
-						_children[1]->convert_to(string_handle, false);
+						_children[0]->check_conversion(string_handle, true);
+						_children[1]->check_conversion(string_handle, false);
 						break;
 					case node_operation::comma:
 						for (int i = 0; i < int(_children.size()) - 1; ++i) {
-							_children[i]->convert_to(void_handle, false);
+							_children[i]->check_conversion(void_handle, false);
 						}
 						_type_id = _children.back()->get_type_id();
 						_lvalue = _children.back()->is_lvalue();
@@ -152,16 +156,16 @@ namespace stork {
 						}
 						break;
 					case node_operation::ternary:
-						_children[0]->convert_to(number_handle, false);
+						_children[0]->check_conversion(number_handle, false);
 						if (is_convertible(
 							_children[2]->get_type_id(), _children[2]->is_lvalue(),
 							_children[1]->get_type_id(), _children[1]->is_lvalue()
 						)) {
-							_children[2]->convert_to(_children[1]->get_type_id(), _children[1]->is_lvalue());
+							_children[2]->check_conversion(_children[1]->get_type_id(), _children[1]->is_lvalue());
 							_type_id = _children[1]->get_type_id();
 							_lvalue = _children[1]->is_lvalue();
 						} else {
-							_children[1]->convert_to(_children[2]->get_type_id(), _children[2]->is_lvalue());
+							_children[1]->check_conversion(_children[2]->get_type_id(), _children[2]->is_lvalue());
 							_type_id = _children[2]->get_type_id();
 							_lvalue = _children[2]->is_lvalue();
 						}
@@ -183,7 +187,7 @@ namespace stork {
 										_children[i+1]->get_line_number(), _children[i+1]->get_char_index()
 									);
 								}
-								_children[i+1]->convert_to(ft->param_type_id[i].type_id, ft->param_type_id[i].by_ref);
+								_children[i+1]->check_conversion(ft->param_type_id[i].type_id, ft->param_type_id[i].by_ref);
 							}
 						} else {
 							throw semantic_error(to_string(_children[0]->_type_id) + " is not callable",
@@ -251,11 +255,8 @@ namespace stork {
 		return _char_index;
 	}
 	
-	void node::convert_to(type_handle type_id, bool lvalue) {
-		if (is_convertible(_type_id, _lvalue, type_id, lvalue)) {
-			_type_id = type_id;
-			_lvalue = lvalue;
-		} else {
+	void node::check_conversion(type_handle type_id, bool lvalue) const{
+		if (!is_convertible(_type_id, _lvalue, type_id, lvalue)) {
 			throw wrong_type_error(std::to_string(_type_id), std::to_string(type_id), lvalue,
 			                       _line_number, _char_index);
 		}

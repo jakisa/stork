@@ -42,6 +42,7 @@ namespace stork {
 				char_index(char_index)
 			{
 				switch (operation) {
+					case node_operation::param: // This will never happen. Used only for the node creation.
 					case node_operation::postinc:
 					case node_operation::postdec:
 					case node_operation::index:
@@ -337,11 +338,23 @@ namespace stork {
 									if (!remove_lvalue) {
 										++it;
 									}
-									operand_stack.push(parse_expression_tree_impl(context, it, false, false));
+									node_ptr argument = parse_expression_tree_impl(context, it, false, false);
 									if (remove_lvalue) {
-										operand_stack.top()->convert_to(operand_stack.top()->get_type_id(), false);
+										size_t line_number = argument->get_line_number();
+										size_t char_index = argument->get_char_index();
+										std::vector<node_ptr> argument_vector;
+										argument_vector.push_back(std::move(argument));
+										argument = std::make_unique<node>(
+											context,
+											node_operation::param,
+											std::move(argument_vector),
+											line_number,
+											char_index
+										);
 									}
 									
+									operand_stack.push(std::move(argument));
+
 									++oi.number_of_operands;
 									
 									if (it->has_value(reserved_token::close_round)) {
@@ -420,7 +433,7 @@ namespace stork {
 		compiler_context& context, tokens_iterator& it, type_handle type_id, bool lvalue, bool allow_comma, bool allow_empty
 	) {
 		node_ptr ret = parse_expression_tree_impl(context, it, allow_comma, allow_empty);
-		ret->convert_to(type_id, lvalue);
+		ret->check_conversion(type_id, lvalue);
 		return ret;
 	}
 }

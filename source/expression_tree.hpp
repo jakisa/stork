@@ -8,6 +8,8 @@
 
 namespace stork {
 	enum struct node_operation {
+		param,
+
 		preinc,
 		predec,
 		postinc,
@@ -94,7 +96,7 @@ namespace stork {
 		size_t get_line_number() const;
 		size_t get_char_index() const;
 		
-		void convert_to(type_handle type_id, bool lvalue);
+		void check_conversion(type_handle type_id, bool lvalue) const;
 	};
 
 }
