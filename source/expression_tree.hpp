@@ -71,8 +71,6 @@ namespace stork {
 		std::vector<node_ptr> _children;
 		type_handle _type_id;
 		bool _lvalue;
-		type_handle _type_id_original;
-		bool _lvalue_original;
 		size_t _line_number;
 		size_t _char_index;
 	public:
@@ -94,9 +92,6 @@ namespace stork {
 		
 		type_handle get_type_id() const;
 		bool is_lvalue() const;
-		
-		type_handle get_type_id_original() const;
-		bool is_lvalue_original() const;
 		
 		size_t get_line_number() const;
 		size_t get_char_index() const;

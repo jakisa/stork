@@ -472,33 +472,33 @@ namespace stork {
 			}
 		};
 		
-		template<class T>
-		class box_expression: public expression<lvalue> {
+		template<typename R, typename T>
+		class param_expression: public expression<R> {
 		private:
 			typename expression<T>::ptr _expr;
 		public:
-			box_expression(typename expression<T>::ptr expr) :
+			param_expression(typename expression<T>::ptr expr) :
 				_expr(std::move(expr))
 			{
 			}
 			
-			lvalue evaluate(runtime_context& context) const override {
-				return std::make_shared<variable_impl<T> >(_expr->evaluate(context));
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(std::make_shared<variable_impl<T> >(_expr->evaluate(context)));
 			}
 		};
 		
-		template<>
-		class box_expression<lvalue>: public expression<lvalue> {
+		template<typename R>
+		class param_expression<R, lvalue>: public expression<R> {
 		private:
 			expression<lvalue>::ptr _expr;
 		public:
-			box_expression(expression<lvalue>::ptr expr) :
+			param_expression(expression<lvalue>::ptr expr) :
 				_expr(std::move(expr))
 			{
 			}
 			
-			lvalue evaluate(runtime_context& context) const override {
-				return _expr->evaluate(context)->clone();
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(_expr->evaluate(context)->clone());
 			}
 		};
 		
@@ -586,32 +586,9 @@ namespace stork {
 							{\
 								std::vector<expression<lvalue>::ptr> arguments;\
 								for (size_t i = 1; i < np->get_children().size(); ++i) {\
-									const node_ptr& child = np->get_children()[i];\
-									if (child->is_lvalue()) {\
-										arguments.push_back(\
-											expression_builder<lvalue>::build_expression(child, context)\
-										);\
-									} else {\
-										if (child->get_type_id() == type_registry::get_number_handle()) {\
-											arguments.push_back(\
-												std::make_unique<box_expression<number> >(\
-													expression_builder<number>::build_expression(child, context)\
-												)\
-											);\
-										} else if (child->get_type_id() == type_registry::get_string_handle()) {\
-											arguments.push_back(\
-												std::make_unique<box_expression<string> >(\
-													expression_builder<string>::build_expression(child, context)\
-												)\
-											);\
-										} else {\
-											arguments.push_back(\
-												std::make_unique<box_expression<lvalue> >(\
-													expression_builder<lvalue>::build_expression(child, context)\
-												)\
-											);\
-										}\
-									}\
+									arguments.push_back(\
+										expression_builder<lvalue>::build_expression(np->get_children()[i], context)\
+									);\
 								}\
 								return expression_ptr(\
 									std::make_unique<call_expression<R, T> >(\
@@ -626,7 +603,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id_original() != type_registry::get_number_handle() || np->is_lvalue_original()) {
+				if (np->get_type_id() != type_registry::get_number_handle() || np->is_lvalue()) {
 					return nullptr;
 				}
 			
@@ -685,7 +662,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 			
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id_original() != type_registry::get_string_handle() || np->is_lvalue_original()) {
+				if (np->get_type_id() != type_registry::get_string_handle() || np->is_lvalue()) {
 					return nullptr;
 				}
 				
@@ -726,7 +703,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id_original() != type_registry::get_number_handle() || !np->is_lvalue_original()) {
+				if (np->get_type_id() != type_registry::get_number_handle() || !np->is_lvalue()) {
 					return nullptr;
 				}
 			
@@ -782,7 +759,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (np->get_type_id_original() != type_registry::get_string_handle() || !np->is_lvalue_original()) {
+				if (np->get_type_id() != type_registry::get_string_handle() || !np->is_lvalue()) {
 					return nullptr;
 				}
 			
@@ -826,7 +803,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (!std::holds_alternative<function_type>(*np->get_type_id_original())) {
+				if (!std::holds_alternative<function_type>(*np->get_type_id())) {
 					return nullptr;
 				}
 			
@@ -869,7 +846,7 @@ namespace stork {
 			using expression_ptr = typename expression<R>::ptr;
 
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				if (!std::holds_alternative<array_type>(*np->get_type_id_original())) {
+				if (!std::holds_alternative<array_type>(*np->get_type_id())) {
 					return nullptr;
 				}
 			
@@ -906,6 +883,49 @@ namespace stork {
 				}, np->get_value());
 			}
 		};
+		
+		template <typename R>
+		struct lvalue_expression_builder {
+			using expression_ptr = typename expression<R>::ptr;
+
+			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
+				return std::visit(overloaded{
+					[&](node_operation op) {
+						switch (op) {
+							case node_operation::param:
+							{
+								const node_ptr& child = np->get_children()[0];
+								if (child->get_type_id() == type_registry::get_number_handle()) {
+									return expression_ptr(
+										std::make_unique<param_expression<R, number> >(
+											expression_builder<number>::build_expression(child, context)
+										)
+									);
+								} else if (child->get_type_id() == type_registry::get_string_handle()) {
+									return expression_ptr(
+										std::make_unique<param_expression<R, string> >(
+											expression_builder<string>::build_expression(child, context)
+										)
+									);
+								} else {
+									return expression_ptr(
+										std::make_unique<param_expression<R, lvalue> >(
+											expression_builder<lvalue>::build_expression(child, context)
+										)
+									);
+								}
+								break;
+							}
+							default:
+								return expression_ptr();
+						}
+					},
+					[](const auto&) {
+						return expression_ptr();
+					}
+				}, np->get_value());
+			}
+		};
 
 #define CHECK_RETURN_EXPRESSION(R, T)\
 			if (expression<R>::ptr ret = T##_expression_builder<R>::build_expression(np, context)) {\
@@ -919,6 +939,7 @@ namespace stork {
 			CHECK_RETURN_EXPRESSION(void, lstring);
 			CHECK_RETURN_EXPRESSION(void, lfunction);
 			CHECK_RETURN_EXPRESSION(void, larray);
+			CHECK_RETURN_EXPRESSION(void, lvalue);
 			return nullptr;
 		};
 		
@@ -972,6 +993,7 @@ namespace stork {
 			CHECK_RETURN_EXPRESSION(lvalue, lstring);
 			CHECK_RETURN_EXPRESSION(lvalue, lfunction);
 			CHECK_RETURN_EXPRESSION(lvalue, larray);
+			CHECK_RETURN_EXPRESSION(lvalue, lvalue);
 			return nullptr;
 		};
 	
