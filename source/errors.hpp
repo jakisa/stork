@@ -33,6 +33,18 @@ namespace stork {
 
 	using get_character = std::function<int()>;
 	void format_error(const error& err, get_character source, std::ostream& output);
+	
+	
+	class runtime_error: public std::exception {
+	private:
+		std::string _message;
+	public:
+		runtime_error(std::string message) noexcept;
+		
+		const char* what() const noexcept override;
+	};
+	
+	void runtime_assertion(bool b, const char* message);
 };
 
 #endif /* errors_hpp */

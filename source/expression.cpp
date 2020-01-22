@@ -400,10 +400,13 @@ namespace stork {
 			}
 		
 			R evaluate(runtime_context& context) const override {
+				larray arr = _expr1->evaluate(context);
+				int idx = int(_expr2->evaluate(context));
+				
+				runtime_assertion(idx >= 0 && idx < arr->value.size(), "Subscript out of range");
+
 				return convert<R>(
-					_expr1->evaluate(context)->value[
-						int(_expr2->evaluate(context))
-					]->template static_pointer_downcast<T>()
+					arr->value[idx]->template static_pointer_downcast<T>()
 				);
 			}
 		};

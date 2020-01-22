@@ -117,5 +117,19 @@ namespace stork {
 		
 		output << "^" << std::endl;
 	}
-};
-
+	
+	runtime_error::runtime_error(std::string message) noexcept:
+		_message(std::move(message))
+	{
+	}
+		
+	const char* runtime_error::what() const noexcept {
+		return _message.c_str();
+	}
+	
+	void runtime_assertion(bool b, const char* message) {
+		if (!b) {
+			throw runtime_error(message);
+		}
+	}
+}

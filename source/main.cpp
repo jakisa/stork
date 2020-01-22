@@ -6,7 +6,7 @@
 #include "expression.hpp"
 
 // When debugging in Xcode, setting the breakpoint will send eof to stdin. We need to ignore it.
-#define XCODE_DEBUG_HACK
+// #define XCODE_DEBUG_HACK
 
 namespace {
 	using namespace stork;
@@ -168,6 +168,8 @@ int main() {
 				strstream.clear();
 				strstream.seekg(0);
 				format_error(err, input, std::cerr);
+			} catch (const runtime_error& err) {
+				std::cerr << err.what() << std::endl;
 			}
 		}
 	}while(
