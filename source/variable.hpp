@@ -22,16 +22,11 @@ namespace stork {
 	using array = std::deque<variable_ptr>;
 	using function = std::function<void(runtime_context&)>;
 	
-	using number_variable = variable_impl<number>;
-	using string_variable = variable_impl<string>;
-	using array_variable = variable_impl<array>;
-	using function_variable = variable_impl<function>;
-	
 	using lvalue = variable_ptr;
-	using lnumber = std::shared_ptr<number_variable>;
-	using lstring = std::shared_ptr<string_variable>;
-	using larray = std::shared_ptr<array_variable>;
-	using lfunction = std::shared_ptr<function_variable>;
+	using lnumber = std::shared_ptr<variable_impl<number>>;
+	using lstring = std::shared_ptr<variable_impl<string>>;
+	using larray = std::shared_ptr<variable_impl<array>>;
+	using lfunction = std::shared_ptr<variable_impl<function>>;
 	
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
@@ -46,13 +41,6 @@ namespace stork {
 		T static_pointer_downcast() {
 			return std::static_pointer_cast<
 				variable_impl<typename T::element_type::value_type>
-			>(shared_from_this());
-		}
-		
-		template <typename T>
-		T static_pointer_downcast() const {
-			return std::static_pointer_cast<
-				variable_impl<const typename T::element_type::value_type>
 			>(shared_from_this());
 		}
 		

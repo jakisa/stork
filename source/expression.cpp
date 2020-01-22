@@ -23,7 +23,13 @@ namespace stork {
 		};
 		
 		string to_string(number n) {
-			return std::make_shared<std::string>(std::to_string(n));
+			std::string str;
+			if (n == int(n)) {
+				str = std::to_string(int(n));
+			} else {
+				str = std::to_string(n);
+			}
+			return std::make_shared<std::string>(std::move(str));
 		}
 		
 		string to_string(lnumber v) {
@@ -1024,5 +1030,4 @@ namespace stork {
 	expression<number>::ptr build_number_expression(compiler_context& context, tokens_iterator& it) {
 		return build_expression<number>(type_registry::get_number_handle(), context, it);
 	}
-
 }
