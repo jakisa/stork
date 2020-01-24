@@ -8,7 +8,7 @@
 #include <string>
 
 namespace stork {
-	template <typename T>
+	template <typename R>
 	class expression {
 		expression(const expression&) = delete;
 		void operator=(const expression&) = delete;
@@ -17,7 +17,7 @@ namespace stork {
 	public:
 		using ptr = std::unique_ptr<const expression>;
 		
-		virtual T evaluate(runtime_context& context) const = 0;
+		virtual R evaluate(runtime_context& context) const = 0;
 		virtual ~expression() = default;
 	};
 	
