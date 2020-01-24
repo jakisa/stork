@@ -7,11 +7,6 @@
 
 namespace stork {
 	namespace {
-		template<typename T>
-		struct remove_cvref {
-			using type = typename std::remove_reference<typename std::remove_cv<T>::type>::type;
-		};
-	
 		template<class V, typename T>
 		struct is_boxed {
 			static const bool value = false;
