@@ -17,7 +17,7 @@ namespace stork {
 			static const bool value = true;
 		};
 		
-		string to_string(number n) {
+		string convert_to_string(number n) {
 			std::string str;
 			if (n == int(n)) {
 				str = std::to_string(int(n));
@@ -27,21 +27,21 @@ namespace stork {
 			return std::make_shared<std::string>(std::move(str));
 		}
 		
-		string to_string(lnumber v) {
-			return to_string(v->value);
+		string convert_to_string(const lnumber& v) {
+			return convert_to_string(v->value);
 		}
 	
 		template<typename To, typename From>
 		auto convert(From&& from) {
 			if constexpr(std::is_void<To>::value) {
 				return;
-			} else if constexpr(std::is_convertible<From&&, To>::value) {
+			} else if constexpr(std::is_convertible<From, To>::value) {
 				return std::forward<From>(from);
 			} else if constexpr(is_boxed<From, To>::value) {
 				return (const To&)(from->value);
 			} else {
 				static_assert(std::is_same<To, string>::value);
-				return to_string(from);
+				return convert_to_string(from);
 			}
 		}
 		
