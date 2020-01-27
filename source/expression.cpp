@@ -33,15 +33,14 @@ namespace stork {
 	
 		template<typename To, typename From>
 		auto convert(From&& from) {
-			if constexpr(std::is_void<To>::value) {
-				return;
-			} else if constexpr(std::is_convertible<From, To>::value) {
+			if constexpr(std::is_convertible<From, To>::value) {
 				return std::forward<From>(from);
 			} else if constexpr(is_boxed<From, To>::value) {
 				return (const To&)(from->value);
-			} else {
-				static_assert(std::is_same<To, string>::value);
+			} else if constexpr(std::is_same<To, string>::value) {
 				return convert_to_string(from);
+			} else {
+				static_assert(std::is_void<To>::value);
 			}
 		}
 		
