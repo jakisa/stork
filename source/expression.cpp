@@ -505,45 +505,48 @@ namespace stork {
 			}
 		};
 		
-		template <typename R>
+		class expression_builder_error {
+		};
+		
+		template<typename R>
 		struct expression_builder;
 		
-		template <>
+		template<>
 		struct expression_builder<void> {
 			static expression<void>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<number> {
 			static expression<number>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<string> {
 			static expression<string>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<lnumber> {
 			static expression<lnumber>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<lstring> {
 			static expression<lstring>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<lfunction> {
 			static expression<lfunction>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<larray> {
 			static expression<larray>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
 		
-		template <>
+		template<>
 		struct expression_builder<lvalue> {
 			static expression<lvalue>::ptr build_expression(const node_ptr& np, compiler_context& context);
 		};
@@ -574,6 +577,27 @@ namespace stork {
 										expression_builder<T3>::build_expression(np->get_children()[2], context)\
 									)\
 								);
+
+#define CHECK_COMPARISON_OPERATION(name)\
+							case node_operation::name:\
+								if (\
+									np->get_children()[0]->get_type_id() == type_registry::get_number_handle() &&\
+									np->get_children()[1]->get_type_id() == type_registry::get_number_handle()\
+								) {\
+									return expression_ptr(\
+										std::make_unique<name##_expression<R, number, number> > (\
+											expression_builder<number>::build_expression(np->get_children()[0], context),\
+											expression_builder<number>::build_expression(np->get_children()[1], context)\
+										)\
+									);\
+								} else {\
+									return expression_ptr(\
+										std::make_unique<name##_expression<R, string, string> > (\
+											expression_builder<string>::build_expression(np->get_children()[0], context),\
+											expression_builder<string>::build_expression(np->get_children()[1], context)\
+										)\
+									);\
+								}
 
 #define CHECK_INDEX_OPERATION(T)\
 							case node_operation::index:\
@@ -637,15 +661,15 @@ namespace stork {
 							CHECK_BINARY_OPERATION(bxor, number, number);
 							CHECK_BINARY_OPERATION(bsl, number, number);
 							CHECK_BINARY_OPERATION(bsr, number, number);
-							CHECK_BINARY_OPERATION(eq, number, number);
-							CHECK_BINARY_OPERATION(ne, number, number);
-							CHECK_BINARY_OPERATION(lt, number, number);
-							CHECK_BINARY_OPERATION(gt, number, number);
-							CHECK_BINARY_OPERATION(le, number, number);
-							CHECK_BINARY_OPERATION(ge, number, number);
 							CHECK_BINARY_OPERATION(comma, void, number);
 							CHECK_BINARY_OPERATION(land, number, number);
 							CHECK_BINARY_OPERATION(lor, number, number);
+							CHECK_COMPARISON_OPERATION(eq);
+							CHECK_COMPARISON_OPERATION(ne);
+							CHECK_COMPARISON_OPERATION(lt);
+							CHECK_COMPARISON_OPERATION(gt);
+							CHECK_COMPARISON_OPERATION(le);
+							CHECK_COMPARISON_OPERATION(ge);
 							CHECK_TERNARY_OPERATION(ternary, number, number, number);
 							CHECK_INDEX_OPERATION(lnumber);
 							CHECK_CALL_OPERATION(number);
@@ -680,12 +704,6 @@ namespace stork {
 					[&](node_operation op) {
 						switch (op) {
 							CHECK_BINARY_OPERATION(concat, string, string);
-							CHECK_BINARY_OPERATION(eq, string, string);
-							CHECK_BINARY_OPERATION(ne, string, string);
-							CHECK_BINARY_OPERATION(lt, string, string);
-							CHECK_BINARY_OPERATION(gt, string, string);
-							CHECK_BINARY_OPERATION(le, string, string);
-							CHECK_BINARY_OPERATION(ge, string, string);
 							CHECK_BINARY_OPERATION(comma, void, string);
 							CHECK_TERNARY_OPERATION(ternary, number, string, string);
 							CHECK_INDEX_OPERATION(lstring);
@@ -936,40 +954,40 @@ namespace stork {
 			}
 		
 		expression<void>::ptr expression_builder<void>::build_expression(const node_ptr& np, compiler_context& context) {
-			CHECK_RETURN_EXPRESSION(void, number);
-			CHECK_RETURN_EXPRESSION(void, string);
 			CHECK_RETURN_EXPRESSION(void, lnumber);
 			CHECK_RETURN_EXPRESSION(void, lstring);
 			CHECK_RETURN_EXPRESSION(void, lfunction);
 			CHECK_RETURN_EXPRESSION(void, larray);
 			CHECK_RETURN_EXPRESSION(void, lvalue);
-			return nullptr;
+			CHECK_RETURN_EXPRESSION(void, number);
+			CHECK_RETURN_EXPRESSION(void, string);
+			throw expression_builder_error();
 		};
 		
 		expression<number>::ptr expression_builder<number>::build_expression(const node_ptr& np, compiler_context& context) {
-			CHECK_RETURN_EXPRESSION(number, number);
 			CHECK_RETURN_EXPRESSION(number, lnumber);
-			return nullptr;
+			CHECK_RETURN_EXPRESSION(number, number);
+			throw expression_builder_error();
 		};
 		
 		expression<string>::ptr expression_builder<string>::build_expression(const node_ptr& np, compiler_context& context) {
-			CHECK_RETURN_EXPRESSION(string, number);
-			CHECK_RETURN_EXPRESSION(string, string);
 			CHECK_RETURN_EXPRESSION(string, lnumber);
 			CHECK_RETURN_EXPRESSION(string, lstring);
-			return nullptr;
+			CHECK_RETURN_EXPRESSION(string, number);
+			CHECK_RETURN_EXPRESSION(string, string);
+			throw expression_builder_error();
 		};
 		
 		expression<lnumber>::ptr expression_builder<lnumber>::build_expression(
 			const node_ptr& np, compiler_context& context
 		) {
 			CHECK_RETURN_EXPRESSION(lnumber, lnumber);
-			return nullptr;
+			throw expression_builder_error();
 		};
 		
 		expression<lstring>::ptr expression_builder<lstring>::build_expression(const node_ptr& np, compiler_context& context) {
 			CHECK_RETURN_EXPRESSION(lstring, lstring);
-			return nullptr;
+			throw expression_builder_error();
 		};
 		
 		expression<lfunction>::ptr expression_builder<lfunction>::build_expression(
@@ -977,7 +995,7 @@ namespace stork {
 			compiler_context& context
 		) {
 			CHECK_RETURN_EXPRESSION(lfunction, lfunction);
-			return nullptr;
+			throw expression_builder_error();
 		};
 		
 		expression<larray>::ptr expression_builder<larray>::build_expression(
@@ -985,7 +1003,7 @@ namespace stork {
 			compiler_context& context
 		) {
 			CHECK_RETURN_EXPRESSION(larray, larray);
-			return nullptr;
+			throw expression_builder_error();
 		};
 		
 		expression<lvalue>::ptr expression_builder<lvalue>::build_expression(
@@ -997,7 +1015,7 @@ namespace stork {
 			CHECK_RETURN_EXPRESSION(lvalue, lfunction);
 			CHECK_RETURN_EXPRESSION(lvalue, larray);
 			CHECK_RETURN_EXPRESSION(lvalue, lvalue);
-			return nullptr;
+			throw expression_builder_error();
 		};
 	
 		template <typename R>
@@ -1005,15 +1023,13 @@ namespace stork {
 			size_t line_number = it->get_line_number();
 			size_t char_index = it->get_char_index();
 			
-			typename expression<R>::ptr ret = expression_builder<R>::build_expression(
-				parse_expression_tree(context, it, type_id, false, true, false), context
-			);
-			
-			if (!ret) {
+			try {
+				return expression_builder<R>::build_expression(
+					parse_expression_tree(context, it, type_id, false, true, false), context
+				);
+			} catch (const expression_builder_error&) {
 				throw compiler_error("Expression building failed", line_number, char_index);
 			}
-			
-			return ret;
 		}
 	}
 
