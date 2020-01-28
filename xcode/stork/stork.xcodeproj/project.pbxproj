@@ -13,12 +13,12 @@
 		D16A341623CC8A72001AB516 /* errors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A341123CC8A72001AB516 /* errors.cpp */; };
 		D16A341723CC8A72001AB516 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A341223CC8A72001AB516 /* main.cpp */; };
 		D16A341823CC8A72001AB516 /* tokens.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A341323CC8A72001AB516 /* tokens.cpp */; };
-		D16A342D23CD27E7001AB516 /* compiler_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342B23CD27E7001AB516 /* compiler_context.cpp */; };
-		D16A343223CD2866001AB516 /* expression_tree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342F23CD2866001AB516 /* expression_tree.cpp */; };
-		D16A343323CD2866001AB516 /* types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A343123CD2866001AB516 /* types.cpp */; };
 		D16A342623CCA134001AB516 /* runtime_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A341C23CCA134001AB516 /* runtime_context.cpp */; };
 		D16A342923CCA134001AB516 /* variable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A341F23CCA134001AB516 /* variable.cpp */; };
 		D16A342A23CCA134001AB516 /* expression.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342323CCA134001AB516 /* expression.cpp */; };
+		D16A342D23CD27E7001AB516 /* compiler_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342B23CD27E7001AB516 /* compiler_context.cpp */; };
+		D16A343223CD2866001AB516 /* expression_tree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342F23CD2866001AB516 /* expression_tree.cpp */; };
+		D16A343323CD2866001AB516 /* types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A343123CD2866001AB516 /* types.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,18 +48,18 @@
 		D16A341123CC8A72001AB516 /* errors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = errors.cpp; sourceTree = "<group>"; };
 		D16A341223CC8A72001AB516 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		D16A341323CC8A72001AB516 /* tokens.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = tokens.cpp; sourceTree = "<group>"; };
-		D16A342B23CD27E7001AB516 /* compiler_context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler_context.cpp; sourceTree = "<group>"; };
-		D16A342C23CD27E7001AB516 /* compiler_context.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = compiler_context.hpp; sourceTree = "<group>"; };
-		D16A342E23CD2865001AB516 /* types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = types.hpp; sourceTree = "<group>"; };
-		D16A342F23CD2866001AB516 /* expression_tree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = expression_tree.cpp; sourceTree = "<group>"; };
-		D16A343023CD2866001AB516 /* expression_tree.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = expression_tree.hpp; sourceTree = "<group>"; };
-		D16A343123CD2866001AB516 /* types.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = types.cpp; sourceTree = "<group>"; };
 		D16A341A23CCA133001AB516 /* expression.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = expression.hpp; sourceTree = "<group>"; };
 		D16A341B23CCA133001AB516 /* runtime_context.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = runtime_context.hpp; sourceTree = "<group>"; };
 		D16A341C23CCA134001AB516 /* runtime_context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = runtime_context.cpp; sourceTree = "<group>"; };
 		D16A341F23CCA134001AB516 /* variable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = variable.cpp; sourceTree = "<group>"; };
 		D16A342123CCA134001AB516 /* variable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = variable.hpp; sourceTree = "<group>"; };
 		D16A342323CCA134001AB516 /* expression.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = expression.cpp; sourceTree = "<group>"; };
+		D16A342B23CD27E7001AB516 /* compiler_context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = compiler_context.cpp; sourceTree = "<group>"; };
+		D16A342C23CD27E7001AB516 /* compiler_context.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = compiler_context.hpp; sourceTree = "<group>"; };
+		D16A342E23CD2865001AB516 /* types.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = types.hpp; sourceTree = "<group>"; };
+		D16A342F23CD2866001AB516 /* expression_tree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = expression_tree.cpp; sourceTree = "<group>"; };
+		D16A343023CD2866001AB516 /* expression_tree.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = expression_tree.hpp; sourceTree = "<group>"; };
+		D16A343123CD2866001AB516 /* types.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = types.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -310,6 +310,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_C_LANGUAGE_STANDARD = c11;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-ftemplate-backtrace-limit=0",
+					"$(OTHER_CFLAGS)",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -318,6 +323,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_C_LANGUAGE_STANDARD = c11;
+				OTHER_CPLUSPLUSFLAGS = (
+					"-ftemplate-backtrace-limit=0",
+					"$(OTHER_CFLAGS)",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
