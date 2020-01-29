@@ -600,9 +600,10 @@ namespace stork {
 
 
 		template<typename R>
-		struct expression_builder{
+		class expression_builder{
+		private:
 			using expression_ptr = typename expression<R>::ptr;
-			
+		
 			static expression_ptr build_void_expression(const node_ptr& np, compiler_context& context) {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, void);
@@ -770,7 +771,7 @@ namespace stork {
 						throw expression_builder_error();
 				}
 			}
-			
+		public:
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
 				return std::visit(overloaded{
 					[&](simple_type st){
