@@ -506,6 +506,17 @@ namespace stork {
 			return expression_ptr();\
 		}
 
+#define CHECK_IDENTIFIER(T1)\
+	if (std::holds_alternative<identifier>(np->get_value())) {\
+		const identifier& id = std::get<identifier>(np->get_value());\
+		const identifier_info* info = context.find(id.name);\
+		if (info->is_global()) {\
+			return std::make_unique<global_variable_expression<R, T1> >(info->index());\
+		} else {\
+			return std::make_unique<local_variable_expression<R, T1> >(info->index());\
+		}\
+	}
+
 #define CHECK_UNARY_OPERATION(name, T1)\
 		case node_operation::name:\
 			return expression_ptr(\
@@ -621,6 +632,8 @@ namespace stork {
 					);
 				}
 				
+				CHECK_IDENTIFIER(lnumber);
+				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_UNARY_OPERATION(postinc, lnumber);
 					CHECK_UNARY_OPERATION(postdec, lnumber);
@@ -656,15 +669,7 @@ namespace stork {
 			}
 			
 			static expression_ptr build_lnumber_expression(const node_ptr& np, compiler_context& context) {
-				if (std::holds_alternative<identifier>(np->get_value())) {
-					const identifier& id = std::get<identifier>(np->get_value());
-					const identifier_info* info = context.find(id.name);
-					if (info->is_global()) {
-						return std::make_unique<global_variable_expression<R, lnumber> >(info->index());
-					} else {
-						return std::make_unique<local_variable_expression<R, lnumber> >(info->index());
-					}
-				}
+				CHECK_IDENTIFIER(lnumber);
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_UNARY_OPERATION(preinc, lnumber);
@@ -696,6 +701,8 @@ namespace stork {
 					);
 				}
 				
+				CHECK_IDENTIFIER(lstring);
+				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
@@ -707,15 +714,7 @@ namespace stork {
 			}
 			
 			static expression_ptr build_lstring_expression(const node_ptr& np, compiler_context& context) {
-				if (std::holds_alternative<identifier>(np->get_value())) {
-					const identifier& id = std::get<identifier>(np->get_value());
-					const identifier_info* info = context.find(id.name);
-					if (info->is_global()) {
-						return std::make_unique<global_variable_expression<R, lstring> >(info->index());
-					} else {
-						return std::make_unique<local_variable_expression<R, lstring> >(info->index());
-					}
-				}
+				CHECK_IDENTIFIER(lstring);
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, lstring, string);
@@ -729,15 +728,7 @@ namespace stork {
 			}
 			
 			static expression_ptr build_larray_expression(const node_ptr& np, compiler_context& context) {
-				if (std::holds_alternative<identifier>(np->get_value())) {
-					const identifier& id = std::get<identifier>(np->get_value());
-					const identifier_info* info = context.find(id.name);
-					if (info->is_global()) {
-						return std::make_unique<global_variable_expression<R, larray> >(info->index());
-					} else {
-						return std::make_unique<local_variable_expression<R, larray> >(info->index());
-					}
-				}
+				CHECK_IDENTIFIER(larray);
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, larray, larray);
@@ -751,15 +742,7 @@ namespace stork {
 			}
 			
 			static expression_ptr build_lfunction_expression(const node_ptr& np, compiler_context& context) {
-				if (std::holds_alternative<identifier>(np->get_value())) {
-					const identifier& id = std::get<identifier>(np->get_value());
-					const identifier_info* info = context.find(id.name);
-					if (info->is_global()) {
-						return std::make_unique<global_variable_expression<R, lfunction> >(info->index());
-					} else {
-						return std::make_unique<local_variable_expression<R, lfunction> >(info->index());
-					}
-				}
+				CHECK_IDENTIFIER(lfunction);
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, lfunction, lfunction);
