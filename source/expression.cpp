@@ -830,12 +830,22 @@ namespace stork {
 			
 			try {
 				return expression_builder<R>::build_expression(
-					parse_expression_tree(context, it, type_id, false, true, false), context
+					parse_expression_tree(context, it, type_id, false, true, false),
+					context
 				);
 			} catch (const expression_builder_error&) {
 				throw compiler_error("Expression building failed", line_number, char_index);
 			}
 		}
+		
+		class empty_expression: public expression<void> {
+			void evaluate(runtime_context&) const override {
+			}
+		};
+	}
+
+	expression<void>::ptr build_empty_expression() {
+		return std::make_unique<empty_expression>();
 	}
 
 	expression<void>::ptr build_void_expression(compiler_context& context, tokens_iterator& it) {
@@ -844,5 +854,9 @@ namespace stork {
 	
 	expression<number>::ptr build_number_expression(compiler_context& context, tokens_iterator& it) {
 		return build_expression<number>(type_registry::get_number_handle(), context, it);
+	}
+	
+	expression<lvalue>::ptr build_retval_expression(compiler_context& context, tokens_iterator& it, type_handle type_id) {
+		return build_expression<lvalue>(type_id, context, it);
 	}
 }
