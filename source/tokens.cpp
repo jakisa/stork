@@ -87,6 +87,7 @@ namespace stork {
 
 			{"var", reserved_token::kw_var},
 			{"fun", reserved_token::kw_fun},
+			{"const", reserved_token::kw_const},
 			
 			{"void", reserved_token::kw_void},
 			{"number", reserved_token::kw_number},
@@ -221,7 +222,7 @@ namespace stork {
 		return _char_index;
 	}
 	
-	bool token::has_value(token_value value) const {
+	bool token::has_value(const token_value& value) const {
 		return _value == value;
 	}
 	

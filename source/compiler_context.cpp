@@ -41,6 +41,10 @@ namespace stork{
 		}
 	}
 	
+	bool identifier_lookup::can_declare(const std::string& name) const {
+		return _identifiers.find(name) == _identifiers.end();
+	}
+	
 	identifier_lookup::~identifier_lookup() {
 	}
 
@@ -115,7 +119,7 @@ namespace stork{
 	}
 	
 	void compiler_context::enter_function() {
-		std::unique_ptr<function_identifier_lookup> params =  std::make_unique<function_identifier_lookup>();
+		std::unique_ptr<function_identifier_lookup> params = std::make_unique<function_identifier_lookup>();
 		_params = params.get();
 		_locals = std::move(params);
 	}
@@ -132,5 +136,9 @@ namespace stork{
 		_locals = _locals->detach_parent();
 		
 		return true;
+	}
+	
+	bool compiler_context::can_declare(const std::string& name) const {
+		return _locals ? _locals->can_declare(name) : _globals.can_declare(name);
 	}
 }

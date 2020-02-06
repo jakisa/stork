@@ -155,7 +155,7 @@ int main() {
 			};
 			
 			try {
-				push_back_stream stream(input);
+				push_back_stream stream(&input);
 				
 				tokens_iterator it(stream);
 				

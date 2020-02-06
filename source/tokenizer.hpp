@@ -5,17 +5,21 @@
 #include <string_view>
 #include <iostream>
 #include <variant>
+#include <deque>
 
 #include "tokens.hpp"
 #include "push_back_stream.hpp"
 
 namespace stork {
 	class tokens_iterator {
+		tokens_iterator(const tokens_iterator&) = delete;
+		void operator=(const tokens_iterator&) = delete;
 	private:
-		push_back_stream& _stream;
+		std::function<token()> _get_next_token;
 		token _current;
 	public:
 		tokens_iterator(push_back_stream& stream);
+		tokens_iterator(std::deque<token>& tokens);
 		
 		const token& operator*() const;
 		const token* operator->() const;

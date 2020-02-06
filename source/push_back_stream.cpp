@@ -1,8 +1,8 @@
 #include "push_back_stream.hpp"
 
 namespace stork {
-	push_back_stream::push_back_stream(const get_character& input) :
-		_input(input),
+	push_back_stream::push_back_stream(const get_character* input) :
+		_input(*input),
 		_line_number(0),
 		_char_index(0)
 	{

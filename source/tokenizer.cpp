@@ -211,14 +211,31 @@ namespace stork {
 	}
 	
 	tokens_iterator::tokens_iterator(push_back_stream& stream):
-		_stream(stream),
-		_current(eof(), 0, 0)
+		_current(eof(), 0, 0),
+		_get_next_token([&stream](){
+			return tokenize(stream);
+		})
+	{
+		++(*this);
+	}
+	
+	tokens_iterator::tokens_iterator(std::deque<token>& tokens):
+		_current(eof(), 0, 0),
+		_get_next_token([&tokens](){
+			if (tokens.empty()) {
+				return token(eof(), 0, 0);
+			} else {
+				token ret = std::move(tokens.front());
+				tokens.pop_front();
+				return ret;
+			}
+		})
 	{
 		++(*this);
 	}
 
 	tokens_iterator& tokens_iterator::operator++() {
-		_current = tokenize(_stream);
+		_current = _get_next_token();
 		return *this;
 	}
 	

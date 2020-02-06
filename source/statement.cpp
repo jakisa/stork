@@ -61,12 +61,46 @@ namespace stork {
 		}
 	};
 	
+	class global_declaration_statement: public statement {
+	private:
+		int _idx;
+		expression<retval>::ptr _expr;
+	public:
+		global_declaration_statement(int idx, expression<retval>::ptr expr):
+			_idx(idx),
+			_expr(std::move(expr))
+		{
+		}
+		
+		flow execute(runtime_context& context) override {
+			context.global(_idx) = _expr->evaluate(context).value;
+			return flow::normal_flow();
+		}
+	};
+	
+	class local_declaration_statement: public statement {
+	private:
+		expression<retval>::ptr _expr;
+	public:
+		local_declaration_statement(expression<retval>::ptr expr):
+			_expr(std::move(expr))
+		{
+		}
+		
+		flow execute(runtime_context& context) override {
+			context.push(_expr->evaluate(context).value);
+			return flow::normal_flow();
+		}
+	};
+	
 	class block_statement: public statement {
 	private:
 		std::vector<statement_ptr> _statements;
+		size_t _scope_vars;
 	public:
-		block_statement(std::vector<statement_ptr> statements):
-			_statements(std::move(statements))
+		block_statement(std::vector<statement_ptr> statements, size_t scope_vars):
+			_statements(std::move(statements)),
+			_scope_vars(scope_vars)
 		{
 		}
 		
@@ -79,9 +113,12 @@ namespace stork {
 						return f;
 				}
 			}
+			context.end_scope(_scope_vars);
 			return flow::normal_flow();
 		}
 	};
+	
+	using block_statement_ptr = std::unique_ptr<block_statement>;
 	
 	class break_statement: public statement {
 	private:
@@ -133,9 +170,9 @@ namespace stork {
 	class if_statement: public statement {
 	private:
 		std::vector<expression<number>::ptr> _exprs;
-		std::vector<statement_ptr> _statements;
+		std::vector<block_statement_ptr> _statements;
 	public:
-		if_statement(std::vector<expression<number>::ptr> exprs, std::vector<statement_ptr> statements):
+		if_statement(std::vector<expression<number>::ptr> exprs, std::vector<block_statement_ptr> statements):
 			_exprs(std::move(exprs)),
 			_statements(std::move(statements))
 		{
@@ -148,6 +185,31 @@ namespace stork {
 				}
 			}
 			return _statements.back()->execute(context);
+		}
+	};
+	
+	class if_declare_statement: public if_statement {
+	private:
+		expression<retval>::ptr _declexpr;
+	public:
+		if_declare_statement(
+			expression<retval>::ptr declexpr,
+			std::vector<expression<number>::ptr> exprs,
+			std::vector<block_statement_ptr> statements
+		):
+			if_statement(std::move(exprs), std::move(statements)),
+			_declexpr(std::move(declexpr))
+		{
+		}
+		
+		flow execute(runtime_context& context) override {
+			context.push(_declexpr->evaluate(context).value);
+			
+			flow ret = if_statement::execute(context);
+			
+			context.end_scope(1);
+			
+			return ret;
 		}
 	};
 	
@@ -188,12 +250,39 @@ namespace stork {
 		}
 	};
 	
+	class switch_declare_statement: public switch_statement {
+	private:
+		expression<retval>::ptr _declexpr;
+	public:
+		switch_declare_statement(
+			expression<retval>::ptr declexpr,
+			expression<number>::ptr expr,
+			std::vector<statement_ptr> statements,
+			std::unordered_map<number, size_t> cases,
+			size_t dflt
+		):
+			_declexpr(std::move(declexpr)),
+			switch_statement(std::move(expr), std::move(statements), std::move(cases), dflt)
+		{
+		}
+		
+		flow execute(runtime_context& context) override {
+			context.push(_declexpr->evaluate(context).value);
+			
+			flow ret = switch_statement::execute(context);
+			
+			context.end_scope(1);
+			
+			return ret;
+		}
+	};
+	
 	class while_statement: public statement {
 	private:
 		expression<number>::ptr _expr;
-		statement_ptr _statement;
+		block_statement_ptr _statement;
 	public:
-		while_statement(expression<number>::ptr expr, statement_ptr statement):
+		while_statement(expression<number>::ptr expr, block_statement_ptr statement):
 			_expr(std::move(expr)),
 			_statement(std::move(statement))
 		{
@@ -219,9 +308,9 @@ namespace stork {
 	class do_statement: public statement {
 	private:
 		expression<number>::ptr _expr;
-		statement_ptr _statement;
+		block_statement_ptr _statement;
 	public:
-		do_statement(expression<number>::ptr expr, statement_ptr statement):
+		do_statement(expression<number>::ptr expr, block_statement_ptr statement):
 			_expr(std::move(expr)),
 			_statement(std::move(statement))
 		{
@@ -249,13 +338,13 @@ namespace stork {
 		expression<void>::ptr _expr1;
 		expression<number>::ptr _expr2;
 		expression<void>::ptr _expr3;
-		statement_ptr _statement;
+		block_statement_ptr _statement;
 	public:
 		for_statement(
 			expression<void>::ptr expr1,
 			expression<number>::ptr expr2,
 			expression<void>::ptr expr3,
-			statement_ptr statement
+			block_statement_ptr statement
 		):
 			_expr1(std::move(expr1)),
 			_expr2(std::move(expr2)),
@@ -276,6 +365,45 @@ namespace stork {
 						return f;
 				}
 			}
+			
+			return flow::normal_flow();
+		}
+	};
+	
+	class for_declare_statement: public statement {
+	private:
+		expression<retval>::ptr _expr1;
+		expression<number>::ptr _expr2;
+		expression<void>::ptr _expr3;
+		block_statement_ptr _statement;
+	public:
+		for_declare_statement(
+			expression<retval>::ptr expr1,
+			expression<number>::ptr expr2,
+			expression<void>::ptr expr3,
+			block_statement_ptr statement
+		):
+			_expr1(std::move(expr1)),
+			_expr2(std::move(expr2)),
+			_expr3(std::move(expr3)),
+			_statement(std::move(statement))
+		{
+		}
+		
+		flow execute(runtime_context& context) override {
+			for (context.push(_expr1->evaluate(context).value); _expr2->evaluate(context); _expr3->evaluate(context)) {
+				switch (flow f = _statement->execute(context); f.type()) {
+					case flow_type::f_normal:
+					case flow_type::f_continue:
+						break;
+					case flow_type::f_break:
+						return f.consume_break();
+					case flow_type::f_return:
+						return f;
+				}
+			}
+			
+			context.end_scope(1);
 			
 			return flow::normal_flow();
 		}

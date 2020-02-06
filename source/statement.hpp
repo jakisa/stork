@@ -39,6 +39,8 @@ namespace stork {
 	};
 	
 	using statement_ptr=std::unique_ptr<statement>;
+	
+	using shared_statement_ptr=std::shared_ptr<statement>;
 }
 
 

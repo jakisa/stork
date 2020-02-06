@@ -89,6 +89,7 @@ namespace stork {
 
 		kw_var,
 		kw_fun,
+		kw_const,
 		
 		kw_void,
 		kw_number,
@@ -138,7 +139,7 @@ namespace stork {
 		size_t get_line_number() const;
 		size_t get_char_index() const;
 
-		bool has_value(token_value value) const;
+		bool has_value(const token_value& value) const;
 	};
 }
 

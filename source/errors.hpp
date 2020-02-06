@@ -30,6 +30,7 @@ namespace stork {
 	error undeclared_error(std::string_view undeclared, size_t line_number, size_t char_index);
 	error wrong_type_error(std::string_view source, std::string_view destination, bool lvalue,
 	                       size_t line_number, size_t char_index);
+	error already_declared_error(std::string_view name, size_t line_number, size_t char_index);
 
 	using get_character = std::function<int()>;
 	void format_error(const error& err, get_character source, std::ostream& output);

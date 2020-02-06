@@ -13,7 +13,7 @@ namespace stork {
 		size_t _line_number;
 		size_t _char_index;
 	public:
-		push_back_stream(const get_character& input);
+		push_back_stream(const get_character* input);
 		
 		int operator()();
 		

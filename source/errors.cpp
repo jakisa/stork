@@ -83,6 +83,13 @@ namespace stork {
 		}
 		return semantic_error(message, line_number, char_index);
 	}
+	
+	error already_declared_error(std::string_view name, size_t line_number, size_t char_index) {
+		std::string message = "'";
+		message += name;
+		message += "' is already declared";
+		return semantic_error(message, line_number, char_index);
+	}
 
 	void format_error(const error& err, get_character source, std::ostream& output) {
 		output << "(" << (err.line_number() + 1) << ") " << err.what() << std::endl;

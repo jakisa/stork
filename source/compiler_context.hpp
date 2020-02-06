@@ -37,6 +37,8 @@ namespace stork {
 		
 		virtual const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant) = 0;
 		
+		bool can_declare(const std::string& name) const;
+		
 		virtual ~identifier_lookup();
 	};
 	
@@ -84,6 +86,8 @@ namespace stork {
 		const identifier_info* create_identifier(std::string name, type_handle type_id, bool is_constant);
 		
 		const identifier_info* create_param(std::string name, type_handle type_id);
+		
+		bool can_declare(const std::string& name) const;
 		
 		void enter_scope();
 		

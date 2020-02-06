@@ -20,6 +20,8 @@
 		D16A342D23CD27E7001AB516 /* compiler_context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342B23CD27E7001AB516 /* compiler_context.cpp */; };
 		D16A343223CD2866001AB516 /* expression_tree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A342F23CD2866001AB516 /* expression_tree.cpp */; };
 		D16A343323CD2866001AB516 /* types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A343123CD2866001AB516 /* types.cpp */; };
+		D1805E0B23ECAA5D00C5BD7F /* incomplete_function.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D1805E0923ECAA5D00C5BD7F /* incomplete_function.cpp */; };
+		D1805E0E23ECAD6400C5BD7F /* compiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D1805E0C23ECAD6400C5BD7F /* compiler.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -63,6 +65,10 @@
 		D16A342F23CD2866001AB516 /* expression_tree.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = expression_tree.cpp; sourceTree = "<group>"; };
 		D16A343023CD2866001AB516 /* expression_tree.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = expression_tree.hpp; sourceTree = "<group>"; };
 		D16A343123CD2866001AB516 /* types.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = types.cpp; sourceTree = "<group>"; };
+		D1805E0923ECAA5D00C5BD7F /* incomplete_function.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = incomplete_function.cpp; sourceTree = "<group>"; };
+		D1805E0A23ECAA5D00C5BD7F /* incomplete_function.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = incomplete_function.hpp; sourceTree = "<group>"; };
+		D1805E0C23ECAD6400C5BD7F /* compiler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = compiler.cpp; sourceTree = "<group>"; };
+		D1805E0D23ECAD6400C5BD7F /* compiler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = compiler.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +128,10 @@
 				D15C4F5723D08F1C007FA82D /* expression_tree_parser.hpp */,
 				D1208AF123E4454100EAE160 /* statement.cpp */,
 				D1208AF223E4454100EAE160 /* statement.hpp */,
+				D1805E0923ECAA5D00C5BD7F /* incomplete_function.cpp */,
+				D1805E0A23ECAA5D00C5BD7F /* incomplete_function.hpp */,
+				D1805E0C23ECAD6400C5BD7F /* compiler.cpp */,
+				D1805E0D23ECAD6400C5BD7F /* compiler.hpp */,
 			);
 			name = source;
 			path = ../../source;
@@ -191,12 +201,14 @@
 				D16A341423CC8A72001AB516 /* push_back_stream.cpp in Sources */,
 				D16A341723CC8A72001AB516 /* main.cpp in Sources */,
 				D16A343223CD2866001AB516 /* expression_tree.cpp in Sources */,
+				D1805E0B23ECAA5D00C5BD7F /* incomplete_function.cpp in Sources */,
 				D16A342623CCA134001AB516 /* runtime_context.cpp in Sources */,
 				D16A342923CCA134001AB516 /* variable.cpp in Sources */,
 				D16A341523CC8A72001AB516 /* tokenizer.cpp in Sources */,
 				D16A343323CD2866001AB516 /* types.cpp in Sources */,
 				D1208AF323E4454100EAE160 /* statement.cpp in Sources */,
 				D16A342A23CCA134001AB516 /* expression.cpp in Sources */,
+				D1805E0E23ECAD6400C5BD7F /* compiler.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
