@@ -6,15 +6,17 @@
 #include <stack>
 #include <string>
 #include "variable.hpp"
+#include "lookup.hpp"
 
 namespace stork {
 	class runtime_context{
 	private:
+		lookup<std::string, lfunction> _public_functions;
 		std::vector<variable_ptr> _globals;
 		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
 	public:
-		runtime_context(size_t globals);
+		runtime_context(size_t globals, std::vector<std::pair<std::string, lfunction> > public_functions);
 	
 		variable_ptr& global(int idx);
 
@@ -29,6 +31,8 @@ namespace stork {
 		void call();
 		
 		variable_ptr end_function(size_t params);
+		
+		lfunction get_public_function(std::string_view name) const;
 	};
 }
 

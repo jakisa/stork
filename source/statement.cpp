@@ -92,32 +92,7 @@ namespace stork {
 			return flow::normal_flow();
 		}
 	};
-	
-	class block_statement: public statement {
-	private:
-		std::vector<statement_ptr> _statements;
-		size_t _scope_vars;
-	public:
-		block_statement(std::vector<statement_ptr> statements, size_t scope_vars):
-			_statements(std::move(statements)),
-			_scope_vars(scope_vars)
-		{
-		}
 		
-		flow execute(runtime_context& context) override {
-			for (const statement_ptr& statement : _statements) {
-				switch (flow f = statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-						break;
-					default:
-						return f;
-				}
-			}
-			context.end_scope(_scope_vars);
-			return flow::normal_flow();
-		}
-	};
-	
 	using block_statement_ptr = std::unique_ptr<block_statement>;
 	
 	class break_statement: public statement {
@@ -408,4 +383,102 @@ namespace stork {
 			return flow::normal_flow();
 		}
 	};
+	
+	statement_ptr create_empty_statement() {
+		return std::make_unique<empty_statement>();
+	}
+	
+	statement_ptr create_simple_statement(expression<void>::ptr expr) {
+		return std::make_unique<simple_statement>(std::move(expr));
+	}
+	
+	statement_ptr create_global_declaration_statement(int idx, expression<retval>::ptr expr) {
+		return std::make_unique<global_declaration_statement>(idx, std::move(expr));
+	}
+	
+	statement_ptr create_local_declaration_statement(expression<retval>::ptr expr) {
+		return std::make_unique<local_declaration_statement>(std::move(expr));
+	}
+	
+	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements, size_t scope_vars) {
+		return std::make_unique<block_statement>(std::move(statements), scope_vars);
+	}
+	
+	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements, size_t scope_vars) {
+		return std::make_shared<block_statement>(std::move(statements), scope_vars);
+	}
+
+	statement_ptr create_break_statement(int break_level) {
+		return std::make_unique<break_statement>(break_level);
+	}
+	
+	statement_ptr create_continue_statement() {
+		return std::make_unique<continue_statement>();
+	}
+	
+	statement_ptr create_return_statement(expression<retval>::ptr expr) {
+		return std::make_unique<return_statement>(std::move(expr));
+	}
+	
+	statement_ptr create_return_void_statement() {
+		return std::make_unique<return_void_statement>();
+	}
+	
+	statement_ptr create_if_statement(std::vector<expression<number>::ptr> exprs, std::vector<block_statement_ptr> statements) {
+		return std::make_unique<if_statement>(std::move(exprs), std::move(statements));
+	}
+	
+	statement_ptr create_if_declare_statement(
+		expression<retval>::ptr declexpr,
+		std::vector<expression<number>::ptr> exprs,
+		std::vector<block_statement_ptr> statements
+	) {
+		return std::make_unique<if_declare_statement>(std::move(declexpr), std::move(exprs), std::move(statements));
+	}
+	
+	statement_ptr create_switch_statement(
+		expression<number>::ptr expr,
+		std::vector<statement_ptr> statements,
+		std::unordered_map<number, size_t> cases,
+		size_t dflt
+	) {
+		return std::make_unique<switch_statement>(std::move(expr), std::move(statements), std::move(cases), dflt);
+	}
+
+	statement_ptr create_switch_declare_statement(
+		expression<retval>::ptr declexpr,
+		expression<number>::ptr expr,
+		std::vector<statement_ptr> statements,
+		std::unordered_map<number, size_t> cases,
+		size_t dflt
+	) {
+		return std::make_unique<switch_declare_statement>(std::move(declexpr), std::move(expr), std::move(statements), std::move(cases), dflt);
+	}
+	
+	
+	statement_ptr crete_while_statement(expression<number>::ptr expr, block_statement_ptr statement) {
+		return std::make_unique<while_statement>(std::move(expr), std::move(statement));
+	}
+	
+	statement_ptr create_do_statement(expression<number>::ptr expr, block_statement_ptr statement) {
+		return std::make_unique<do_statement>(std::move(expr), std::move(statement));
+	}
+	
+	statement_ptr create_for_statement(
+		expression<void>::ptr expr1,
+		expression<number>::ptr expr2,
+		expression<void>::ptr expr3,
+		block_statement_ptr statement
+	) {
+		return std::make_unique<for_statement>(std::move(expr1), std::move(expr2), std::move(expr3), std::move(statement));
+	}
+	
+	statement_ptr create_for_declare_statement(
+		expression<retval>::ptr expr1,
+		expression<number>::ptr expr2,
+		expression<void>::ptr expr3,
+		block_statement_ptr statement
+	) {
+		return std::make_unique<for_declare_statement>(std::move(expr1), std::move(expr2), std::move(expr3), std::move(statement));
+	}
 }

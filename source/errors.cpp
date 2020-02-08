@@ -59,6 +59,13 @@ namespace stork {
 		return syntax_error(message, line_number, char_index);
 	}
 	
+	error expected_syntax_error(std::string_view expected, size_t line_number, size_t char_index) {
+		std::string message("Expected '");
+		message += expected;
+		message += "'";
+		return syntax_error(message, line_number, char_index);
+	}
+	
 	error undeclared_error(std::string_view undeclared, size_t line_number, size_t char_index) {
 		std::string message("Undeclared identifier '");
 		message += undeclared;

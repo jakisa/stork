@@ -139,7 +139,7 @@ int main() {
 	compiler_context ccontext;
 	create_identifiers(ccontext);
 	
-	runtime_context rcontext(16);
+	runtime_context rcontext(16, {});
 	prepare_runtime_context(rcontext);
 	
 	do {

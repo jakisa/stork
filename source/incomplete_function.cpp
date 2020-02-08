@@ -57,7 +57,7 @@ namespace stork {
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {
-		ctx.enter_scope();
+		ctx.enter_function();
 		
 		const function_type* ft = std::get_if<function_type>(_ft);
 		
@@ -67,7 +67,9 @@ namespace stork {
 		
 		tokens_iterator it(_tokens);
 		
-		shared_statement_ptr stmt = compile_function_block(ctx, it);
+		shared_block_statement_ptr stmt = compile_function_block(ctx, it);
+		
+		ctx.leave_scope();
 		
 		return [stmt=std::move(stmt)] (runtime_context& ctx) {
 			stmt->execute(ctx);

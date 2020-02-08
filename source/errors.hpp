@@ -27,6 +27,7 @@ namespace stork {
 
 	error unexpected_error(std::string_view unexpected, size_t line_number, size_t char_index);
 	error unexpected_syntax_error(std::string_view unexpected, size_t line_number, size_t char_index);
+	error expected_syntax_error(std::string_view expected, size_t line_number, size_t char_index);
 	error undeclared_error(std::string_view undeclared, size_t line_number, size_t char_index);
 	error wrong_type_error(std::string_view source, std::string_view destination, bool lvalue,
 	                       size_t line_number, size_t char_index);

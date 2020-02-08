@@ -322,7 +322,11 @@ namespace stork {
 					}
 					
 					if ((oi.precedence == operator_precedence::prefix) != expected_operand) {
-						throw unexpected_syntax_error(std::to_string(*it), it->get_line_number(), it->get_char_index());
+						throw unexpected_syntax_error(
+							std::to_string(it->get_value()),
+							it->get_line_number(),
+							it->get_char_index()
+						);
 					}
 					
 					if (!operator_stack.empty() && is_evaluated_before(operator_stack.top(), oi)) {
@@ -398,7 +402,11 @@ namespace stork {
 					expected_operand = (oi.precedence != operator_precedence::postfix);
 				} else {
 					if (!expected_operand) {
-						throw unexpected_syntax_error(std::to_string(*it), it->get_line_number(), it->get_char_index());
+						throw unexpected_syntax_error(
+							std::to_string(it->get_value()),
+							it->get_line_number(),
+							it->get_char_index()
+						);
 					}
 					if (it->is_number()) {
 						operand_stack.push(std::make_unique<node>(

@@ -88,12 +88,14 @@ namespace stork {
 		kw_return,
 
 		kw_var,
-		kw_fun,
+		kw_function,
 		kw_const,
 		
 		kw_void,
 		kw_number,
 		kw_string,
+		
+		kw_public,
 	};
 	std::ostream& operator<<(std::ostream& os, reserved_token t);
 	
@@ -145,7 +147,6 @@ namespace stork {
 
 namespace std {
 	std::string to_string(stork::reserved_token t);
-	std::string to_string(const stork::token& t);
-}
+	std::string to_string(const stork::token_value& t);}
 
 #endif /* tokens_hpp */

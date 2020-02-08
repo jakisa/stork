@@ -86,12 +86,14 @@ namespace stork {
 			{"return", reserved_token::kw_return},
 
 			{"var", reserved_token::kw_var},
-			{"fun", reserved_token::kw_fun},
+			{"function", reserved_token::kw_function},
 			{"const", reserved_token::kw_const},
 			
 			{"void", reserved_token::kw_void},
 			{"number", reserved_token::kw_number},
-			{"string", reserved_token::kw_string}
+			{"string", reserved_token::kw_string},
+			
+			{"public", reserved_token::kw_public}
 		};
 		
 		const lookup<reserved_token, std::string_view> token_string_map = ([](){
@@ -249,7 +251,7 @@ namespace std {
 		return std::string(token_string_map.find(t)->second);
 	}
 	
-	std::string to_string(const token& t) {
+	std::string to_string(const token_value& t) {
 		return std::visit(overloaded{
 			[](reserved_token rt) {
 				return to_string(rt);
@@ -266,6 +268,6 @@ namespace std {
 			[](eof) {
 				return std::string("<EOF>");
 			}
-		}, t.get_value());
+		}, t);
 	}
 }
