@@ -351,6 +351,14 @@ namespace stork {
 											line_number,
 											char_index
 										);
+									} else if (!argument->is_lvalue()) {
+										throw wrong_type_error(
+											std::to_string(argument->get_type_id()),
+											std::to_string(argument->get_type_id()),
+											true,
+											argument->get_line_number(),
+											argument->get_char_index()
+										);
 									}
 									
 									operand_stack.push(std::move(argument));
