@@ -2,6 +2,7 @@
 #define statement_hpp
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include "expression.hpp"
 
 namespace stork {
@@ -47,24 +48,9 @@ namespace stork {
 		std::vector<statement_ptr> _statements;
 		size_t _scope_vars;
 	public:
-		block_statement(std::vector<statement_ptr> statements, size_t scope_vars):
-			_statements(std::move(statements)),
-			_scope_vars(scope_vars)
-		{
-		}
+		block_statement(std::vector<statement_ptr> statements, size_t scope_vars);
 		
-		flow execute(runtime_context& context) override {
-			for (const statement_ptr& statement : _statements) {
-				switch (flow f = statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-						break;
-					default:
-						return f;
-				}
-			}
-			context.end_scope(_scope_vars);
-			return flow::normal_flow();
-		}
+		flow execute(runtime_context& context) override;
 	};
 	
 	using block_statement_ptr = std::unique_ptr<block_statement>;

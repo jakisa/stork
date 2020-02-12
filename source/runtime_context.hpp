@@ -11,18 +11,20 @@
 namespace stork {
 	class runtime_context{
 	private:
-		lookup<std::string, lfunction> _public_functions;
+		std::vector<lfunction> _functions;
 		std::vector<variable_ptr> _globals;
 		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
 	public:
-		runtime_context(size_t globals, std::vector<std::pair<std::string, lfunction> > public_functions);
+		runtime_context(size_t globals, std::vector<lfunction> functions);
 	
 		variable_ptr& global(int idx);
 
 		variable_ptr& retval();
 
 		variable_ptr& local(int idx);
+		
+		const lfunction& get_function(int idx) const;
 		
 		void push(variable_ptr v);
 		
@@ -31,8 +33,6 @@ namespace stork {
 		void call();
 		
 		variable_ptr end_function(size_t params);
-		
-		lfunction get_public_function(std::string_view name) const;
 	};
 }
 

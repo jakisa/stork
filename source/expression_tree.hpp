@@ -4,9 +4,9 @@
 #include <vector>
 #include "tokens.hpp"
 #include "types.hpp"
-#include "compiler_context.hpp"
 
 namespace stork {
+
 	enum struct node_operation {
 		param,
 
@@ -64,6 +64,8 @@ namespace stork {
 	using node_ptr=std::unique_ptr<node>;
 	
 	using node_value=std::variant<node_operation, std::string, double, identifier>;
+	
+	class compiler_context;
 	
 	struct node {
 	private:

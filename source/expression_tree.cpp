@@ -1,6 +1,7 @@
 #include "expression_tree.hpp"
 #include "helpers.hpp"
 #include "errors.hpp"
+#include "compiler_context.hpp"
 
 namespace stork {
 	namespace {
@@ -40,7 +41,7 @@ namespace stork {
 			[&](const identifier& value){
 				if (const identifier_info* info = context.find(value.name)) {
 					_type_id = info->type_id();
-					_lvalue = !info->is_constant();
+					_lvalue = (info->get_scope() != identifier_scope::function);
 				} else {
 					throw undeclared_error(value.name, _line_number, _char_index);
 				}

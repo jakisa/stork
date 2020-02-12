@@ -8,9 +8,10 @@
 #include <deque>
 
 #include "tokens.hpp"
-#include "push_back_stream.hpp"
 
 namespace stork {
+	class push_back_stream;
+
 	class tokens_iterator {
 		tokens_iterator(const tokens_iterator&) = delete;
 		void operator=(const tokens_iterator&) = delete;

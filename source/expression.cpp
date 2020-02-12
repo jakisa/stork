@@ -4,6 +4,9 @@
 #include "expression_tree_parser.hpp"
 #include "helpers.hpp"
 #include "errors.hpp"
+#include "runtime_context.hpp"
+#include "tokenizer.hpp"
+#include "compiler_context.hpp"
 
 namespace stork {
 	namespace {
@@ -104,6 +107,21 @@ namespace stork {
 			
 			R evaluate(runtime_context& context) const override {
 				return convert<R>(context.local(_idx)->template static_pointer_downcast<T>());
+			}
+		};
+		
+		template<typename R>
+		class function_expression: public expression<R> {
+		private:
+			int _idx;
+		public:
+			function_expression(int idx) :
+				_idx(idx)
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				return convert<R>(context.get_function(_idx));
 			}
 		};
 		
@@ -487,10 +505,17 @@ namespace stork {
 	if (std::holds_alternative<identifier>(np->get_value())) {\
 		const identifier& id = std::get<identifier>(np->get_value());\
 		const identifier_info* info = context.find(id.name);\
-		if (info->is_global()) {\
-			return std::make_unique<global_variable_expression<R, T1> >(info->index());\
-		} else {\
-			return std::make_unique<local_variable_expression<R, T1> >(info->index());\
+		switch (info->get_scope()) {\
+			case identifier_scope::global_variable:\
+				return std::make_unique<global_variable_expression<R, T1> >(info->index());\
+			case identifier_scope::local_variable:\
+				return std::make_unique<local_variable_expression<R, T1> >(info->index());\
+			case identifier_scope::function:\
+				if constexpr (std::is_same<T1, lfunction>::value) {\
+					return std::make_unique<function_expression<R> >(info->index());\
+				} else {\
+					break;\
+				}\
 		}\
 	}
 

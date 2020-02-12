@@ -4,6 +4,8 @@
 #include "errors.hpp"
 #include "compiler_context.hpp"
 #include "expression.hpp"
+#include "runtime_context.hpp"
+#include "push_back_stream.hpp"
 
 // When debugging in Xcode, setting the breakpoint will send eof to stdin. We need to ignore it.
 #define XCODE_DEBUG_HACK
@@ -12,19 +14,19 @@ namespace {
 	using namespace stork;
 	
 	void create_identifiers(compiler_context& context) {
-		context.create_identifier("a", type_registry::get_number_handle(), false);
-		context.create_identifier("b", type_registry::get_number_handle(), false);
-		context.create_identifier("c", type_registry::get_number_handle(), false);
-		context.create_identifier("d", type_registry::get_number_handle(), false);
-		context.create_identifier("e", type_registry::get_number_handle(), false);
-		context.create_identifier("f", type_registry::get_number_handle(), false);
+		context.create_identifier("a", type_registry::get_number_handle());
+		context.create_identifier("b", type_registry::get_number_handle());
+		context.create_identifier("c", type_registry::get_number_handle());
+		context.create_identifier("d", type_registry::get_number_handle());
+		context.create_identifier("e", type_registry::get_number_handle());
+		context.create_identifier("f", type_registry::get_number_handle());
 		
-		context.create_identifier("str1", type_registry::get_string_handle(), false);
-		context.create_identifier("str2", type_registry::get_string_handle(), false);
-		context.create_identifier("str3", type_registry::get_string_handle(), false);
-		context.create_identifier("str4", type_registry::get_string_handle(), false);
-		context.create_identifier("str5", type_registry::get_string_handle(), false);
-		context.create_identifier("str6", type_registry::get_string_handle(), false);
+		context.create_identifier("str1", type_registry::get_string_handle());
+		context.create_identifier("str2", type_registry::get_string_handle());
+		context.create_identifier("str3", type_registry::get_string_handle());
+		context.create_identifier("str4", type_registry::get_string_handle());
+		context.create_identifier("str5", type_registry::get_string_handle());
+		context.create_identifier("str6", type_registry::get_string_handle());
 		
 		function_type ft1;
 		ft1.return_type_id = type_registry::get_number_handle();
@@ -36,11 +38,11 @@ namespace {
 		ft2.param_type_id.push_back({type_registry::get_string_handle(), true});
 		ft2.param_type_id.push_back({type_registry::get_string_handle(), false});
 		
-		context.create_identifier("add", context.get_handle(ft1), true);
-		context.create_identifier("concat_to", context.get_handle(ft2), true);
+		context.create_identifier("add", context.get_handle(ft1));
+		context.create_identifier("concat_to", context.get_handle(ft2));
 		
-		context.create_identifier("numarr", context.get_handle(array_type{type_registry::get_number_handle()}), false);
-		context.create_identifier("strarr", context.get_handle(array_type{type_registry::get_string_handle()}), false);
+		context.create_identifier("numarr", context.get_handle(array_type{type_registry::get_number_handle()}));
+		context.create_identifier("strarr", context.get_handle(array_type{type_registry::get_string_handle()}));
 	}
 	
 	void add(runtime_context& ctx) {

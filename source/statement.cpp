@@ -1,6 +1,7 @@
+#include <unordered_map>
 #include "statement.hpp"
 #include "expression.hpp"
-#include <unordered_map>
+#include "runtime_context.hpp"
 
 namespace stork {
 	flow::flow(flow_type type, int break_level):
@@ -60,6 +61,25 @@ namespace stork {
 			return flow::normal_flow();
 		}
 	};
+	
+	block_statement::block_statement(std::vector<statement_ptr> statements, size_t scope_vars):
+		_statements(std::move(statements)),
+		_scope_vars(scope_vars)
+	{
+	}
+		
+	flow block_statement::execute(runtime_context& context) {
+		for (const statement_ptr& statement : _statements) {
+			switch (flow f = statement->execute(context); f.type()) {
+				case flow_type::f_normal:
+					break;
+				default:
+					return f;
+			}
+		}
+		context.end_scope(_scope_vars);
+		return flow::normal_flow();
+	}
 	
 	class global_declaration_statement: public statement {
 	private:

@@ -6,8 +6,6 @@
 #include <ostream>
 #include <variant>
 
-#include "push_back_stream.hpp"
-
 namespace stork {
 	enum struct reserved_token {
 		inc,
@@ -89,7 +87,6 @@ namespace stork {
 
 		kw_var,
 		kw_function,
-		kw_const,
 		
 		kw_void,
 		kw_number,
@@ -97,6 +94,9 @@ namespace stork {
 		
 		kw_public,
 	};
+	
+	class push_back_stream;
+	
 	std::ostream& operator<<(std::ostream& os, reserved_token t);
 	
 	std::optional<reserved_token> get_keyword(std::string_view word);

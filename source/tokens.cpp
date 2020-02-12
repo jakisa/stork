@@ -2,6 +2,8 @@
 #include "lookup.hpp"
 #include <string_view>
 #include "helpers.hpp"
+#include <stack>
+#include "push_back_stream.hpp"
 
 namespace stork {
 	namespace {
@@ -87,7 +89,6 @@ namespace stork {
 
 			{"var", reserved_token::kw_var},
 			{"function", reserved_token::kw_function},
-			{"const", reserved_token::kw_const},
 			
 			{"void", reserved_token::kw_void},
 			{"number", reserved_token::kw_number},

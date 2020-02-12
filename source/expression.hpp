@@ -1,13 +1,16 @@
 #ifndef expression_hpp
 #define expression_hpp
 
-#include "runtime_context.hpp"
-#include "compiler_context.hpp"
-#include "tokenizer.hpp"
+#include "variable.hpp"
+#include "types.hpp"
 
 #include <string>
 
 namespace stork {
+	class runtime_context;
+	class tokens_iterator;
+	class compiler_context;
+
 	template <typename R>
 	class expression {
 		expression(const expression&) = delete;

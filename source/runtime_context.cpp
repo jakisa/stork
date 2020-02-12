@@ -1,8 +1,8 @@
 #include "runtime_context.hpp"
 
 namespace stork {
-	runtime_context::runtime_context(size_t globals, std::vector<std::pair<std::string, lfunction> > public_functions) :
-		_public_functions(std::move(public_functions)),
+	runtime_context::runtime_context(size_t globals, std::vector<lfunction> functions) :
+		_functions(std::move(functions)),
 		_globals(globals),
 		_stack(1)
 	{
@@ -19,6 +19,10 @@ namespace stork {
 
 	variable_ptr& runtime_context::local(int idx) {
 		return _stack[_retval_idx.top() + idx];
+	}
+	
+	const lfunction& runtime_context::get_function(int idx) const {
+		return _functions[idx];
 	}
 	
 	void runtime_context::push(variable_ptr v) {
@@ -39,13 +43,5 @@ namespace stork {
 		_stack.resize(_retval_idx.top() - params);
 		_retval_idx.pop();
 		return ret;
-	}
-	
-	lfunction runtime_context::get_public_function(std::string_view name) const {
-		if (auto it = _public_functions.find(name); it != _public_functions.end()) {
-			return it->second;
-		} else {
-			return nullptr;
-		}
 	}
 }

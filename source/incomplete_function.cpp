@@ -2,6 +2,7 @@
 #include "compiler.hpp"
 #include "compiler_context.hpp"
 #include "errors.hpp"
+#include "tokenizer.hpp"
 
 namespace stork {
 	incomplete_function::incomplete_function(compiler_context& ctx, tokens_iterator& it) {
@@ -53,7 +54,12 @@ namespace stork {
 		
 		_ft = ctx.get_handle(ft);
 		
-		ctx.create_identifier(std::move(name), _ft, true);
+		const identifier_info* id = ctx.create_function(std::move(name), _ft);
+		_index = id->index();
+	}
+	
+	size_t incomplete_function::index() const {
+		return _index;
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {

@@ -2,13 +2,14 @@
 #define compiler_hpp
 
 #include "types.hpp"
-#include "tokenizer.hpp"
+#include "tokens.hpp"
 #include "statement.hpp"
-#include "runtime_context.hpp"
 
 namespace stork {
 	class compiler_context;
-	
+	class tokens_iterator;
+	class runtime_context;
+
 	runtime_context compile(compiler_context& ctx, tokens_iterator& it);
 	
 	type_handle parse_type(compiler_context& ctx, tokens_iterator& it);
