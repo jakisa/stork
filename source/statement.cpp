@@ -84,31 +84,31 @@ namespace stork {
 	class global_declaration_statement: public statement {
 	private:
 		int _idx;
-		expression<retval>::ptr _expr;
+		expression<lvalue>::ptr _expr;
 	public:
-		global_declaration_statement(int idx, expression<retval>::ptr expr):
+		global_declaration_statement(int idx, expression<lvalue>::ptr expr):
 			_idx(idx),
 			_expr(std::move(expr))
 		{
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.global(_idx) = _expr->evaluate(context).value;
+			context.global(_idx) = _expr->evaluate(context);
 			return flow::normal_flow();
 		}
 	};
 	
 	class local_declaration_statement: public statement {
 	private:
-		expression<retval>::ptr _expr;
+		expression<lvalue>::ptr _expr;
 	public:
-		local_declaration_statement(expression<retval>::ptr expr):
+		local_declaration_statement(expression<lvalue>::ptr expr):
 			_expr(std::move(expr))
 		{
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_expr->evaluate(context).value);
+			context.push(_expr->evaluate(context));
 			return flow::normal_flow();
 		}
 	};
@@ -185,10 +185,10 @@ namespace stork {
 	
 	class if_declare_statement: public if_statement {
 	private:
-		expression<retval>::ptr _declexpr;
+		expression<lvalue>::ptr _declexpr;
 	public:
 		if_declare_statement(
-			expression<retval>::ptr declexpr,
+			expression<lvalue>::ptr declexpr,
 			std::vector<expression<number>::ptr> exprs,
 			std::vector<block_statement_ptr> statements
 		):
@@ -198,7 +198,7 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_declexpr->evaluate(context).value);
+			context.push(_declexpr->evaluate(context));
 			
 			flow ret = if_statement::execute(context);
 			
@@ -247,10 +247,10 @@ namespace stork {
 	
 	class switch_declare_statement: public switch_statement {
 	private:
-		expression<retval>::ptr _declexpr;
+		expression<lvalue>::ptr _declexpr;
 	public:
 		switch_declare_statement(
-			expression<retval>::ptr declexpr,
+			expression<lvalue>::ptr declexpr,
 			expression<number>::ptr expr,
 			std::vector<statement_ptr> statements,
 			std::unordered_map<number, size_t> cases,
@@ -262,7 +262,7 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_declexpr->evaluate(context).value);
+			context.push(_declexpr->evaluate(context));
 			
 			flow ret = switch_statement::execute(context);
 			
@@ -367,13 +367,13 @@ namespace stork {
 	
 	class for_declare_statement: public statement {
 	private:
-		expression<retval>::ptr _expr1;
+		expression<lvalue>::ptr _expr1;
 		expression<number>::ptr _expr2;
 		expression<void>::ptr _expr3;
 		block_statement_ptr _statement;
 	public:
 		for_declare_statement(
-			expression<retval>::ptr expr1,
+			expression<lvalue>::ptr expr1,
 			expression<number>::ptr expr2,
 			expression<void>::ptr expr3,
 			block_statement_ptr statement
@@ -386,7 +386,7 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
-			for (context.push(_expr1->evaluate(context).value); _expr2->evaluate(context); _expr3->evaluate(context)) {
+			for (context.push(_expr1->evaluate(context)); _expr2->evaluate(context); _expr3->evaluate(context)) {
 				switch (flow f = _statement->execute(context); f.type()) {
 					case flow_type::f_normal:
 					case flow_type::f_continue:
@@ -412,11 +412,11 @@ namespace stork {
 		return std::make_unique<simple_statement>(std::move(expr));
 	}
 	
-	statement_ptr create_global_declaration_statement(int idx, expression<retval>::ptr expr) {
+	statement_ptr create_global_declaration_statement(int idx, expression<lvalue>::ptr expr) {
 		return std::make_unique<global_declaration_statement>(idx, std::move(expr));
 	}
 	
-	statement_ptr create_local_declaration_statement(expression<retval>::ptr expr) {
+	statement_ptr create_local_declaration_statement(expression<lvalue>::ptr expr) {
 		return std::make_unique<local_declaration_statement>(std::move(expr));
 	}
 	
@@ -436,7 +436,7 @@ namespace stork {
 		return std::make_unique<continue_statement>();
 	}
 	
-	statement_ptr create_return_statement(expression<retval>::ptr expr) {
+	statement_ptr create_return_statement(expression<lvalue>::ptr expr) {
 		return std::make_unique<return_statement>(std::move(expr));
 	}
 	
@@ -449,7 +449,7 @@ namespace stork {
 	}
 	
 	statement_ptr create_if_declare_statement(
-		expression<retval>::ptr declexpr,
+		expression<lvalue>::ptr declexpr,
 		std::vector<expression<number>::ptr> exprs,
 		std::vector<block_statement_ptr> statements
 	) {
@@ -466,7 +466,7 @@ namespace stork {
 	}
 
 	statement_ptr create_switch_declare_statement(
-		expression<retval>::ptr declexpr,
+		expression<lvalue>::ptr declexpr,
 		expression<number>::ptr expr,
 		std::vector<statement_ptr> statements,
 		std::unordered_map<number, size_t> cases,
@@ -494,7 +494,7 @@ namespace stork {
 	}
 	
 	statement_ptr create_for_declare_statement(
-		expression<retval>::ptr expr1,
+		expression<lvalue>::ptr expr1,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
 		block_statement_ptr statement

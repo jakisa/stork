@@ -20,6 +20,11 @@ namespace stork {
 			static const bool value = true;
 		};
 		
+		template<typename T>
+		struct remove_cvref {
+			using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+		};
+		
 		string convert_to_string(number n) {
 			std::string str;
 			if (n == int(n)) {
@@ -35,8 +40,8 @@ namespace stork {
 		}
 		
 		template <typename T>
-		typename T::element_type::value_type unbox(T&& t) {
-			if constexpr (std::is_same<T, larray>::value) {
+		auto unbox(T&& t) {
+			if constexpr (std::is_same<typename remove_cvref<T>::type, larray>::value) {
 				return clone_variable_value(t->value);
 			} else {
 				return t->value;
@@ -47,7 +52,7 @@ namespace stork {
 		auto convert(From&& from) {
 			if constexpr(std::is_convertible<From, To>::value) {
 				return std::forward<From>(from);
-			} else if constexpr(is_boxed<From, To>::value) {
+			} else if constexpr(is_boxed<typename remove_cvref<From>::type, To>::value) {
 				return unbox(std::forward<From>(from));
 			} else if constexpr(std::is_same<To, string>::value) {
 				return convert_to_string(from);
@@ -488,6 +493,8 @@ namespace stork {
 			}
 		};
 		
+		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context);
+		
 		struct expression_builder_error {
 			expression_builder_error(){
 			}
@@ -576,13 +583,6 @@ namespace stork {
 			)\
 		);
 
-#define PARAM_EXPRESSION(T)\
-	expression<lvalue>::ptr(\
-		std::make_unique<param_expression<T> >(\
-			expression_builder<T>::build_expression(child->get_children()[0], context)\
-		)\
-	)
-
 #define CHECK_CALL_OPERATION(T)\
 	case node_operation::call:\
 	{\
@@ -595,25 +595,7 @@ namespace stork {
 				std::get<node_operation>(child->get_value()) == node_operation::param\
 			) {\
 				arguments.push_back(\
-					std::visit(overloaded{\
-						[&](simple_type st){\
-							switch (st) {\
-								case simple_type::number:\
-									return PARAM_EXPRESSION(number);\
-								case simple_type::string:\
-									return PARAM_EXPRESSION(string);\
-								case simple_type::nothing:\
-									throw expression_builder_error();\
-									return expression<lvalue>::ptr();\
-							}\
-						},\
-						[&](const function_type& ft) {\
-							return PARAM_EXPRESSION(function);\
-						},\
-						[&](const array_type& at) {\
-							return PARAM_EXPRESSION(array);\
-						}\
-					}, *ft->param_type_id[i-1].type_id)\
+					build_lvalue_expression(ft->param_type_id[i-1].type_id, child, context)\
 				);\
 			} else {\
 				arguments.push_back(\
@@ -836,9 +818,14 @@ namespace stork {
 					}
 				}, *np->get_type_id());
 			}
+			
+			static expression<lvalue>::ptr build_param_expression(const node_ptr& np, compiler_context& context) {
+				return std::make_unique<param_expression<R> >(
+					expression_builder<R>::build_expression(np, context)
+				);
+			}
 		};
 
-#undef PARAM_EXPRESSION
 #undef CHECK_CALL_OPERATION
 #undef CHECK_INDEX_OPERATION
 #undef CHECK_COMPARISON_OPERATION
@@ -847,17 +834,48 @@ namespace stork {
 #undef CHECK_UNARY_OPERATION
 #undef RETURN_EXPRESSION_OF_TYPE
 
-
+		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context) {
+			return std::visit(overloaded{
+				[&](simple_type st){
+					switch (st) {
+						case simple_type::number:
+							return expression_builder<number>::build_param_expression(np, context);
+						case simple_type::string:
+							return expression_builder<string>::build_param_expression(np, context);
+						case simple_type::nothing:
+							throw expression_builder_error();
+							return expression<lvalue>::ptr();
+					}
+				},
+				[&](const function_type& ft) {
+					return expression_builder<function>::build_param_expression(np, context);
+				},
+				[&](const array_type& at) {
+					return expression_builder<array>::build_param_expression(np, context);
+				}
+			}, *type_id);
+		}
+		
 		template<typename R>
 		typename expression<R>::ptr build_expression(type_handle type_id, compiler_context& context, tokens_iterator& it) {
 			size_t line_number = it->get_line_number();
 			size_t char_index = it->get_char_index();
 			
 			try {
-				return expression_builder<R>::build_expression(
-					parse_expression_tree(context, it, type_id, false, true, false),
-					context
-				);
+				node_ptr np = parse_expression_tree(context, it, type_id, false, true, false);
+				
+				if constexpr(std::is_same<R, lvalue>::value) {
+					return build_lvalue_expression(
+						type_id,
+						np,
+						context
+					);
+				} else {
+					return expression_builder<R>::build_expression(
+						np,
+						context
+					);
+				}
 			} catch (const expression_builder_error&) {
 				throw compiler_error("Expression building failed", line_number, char_index);
 			}
