@@ -11,13 +11,20 @@
 const char* stork_code = R"STORK_CODE(
 
 public function number fib(number idx) {
-	switch (idx) {
-		case 0:
-		case 1:
-			return idx;
-		default:
-			return fib(idx-2) + fib(idx-1);
+	if (idx == 0) {
+		return 0;
 	}
+	
+	var number fib0 = 0;
+	var number fib1 = 1;
+	
+	for (var number i = 1; i < idx; ++i) {
+		var number fib2 = fib0 + fib1;
+		fib0 = fib1;
+		fib1 = fib2;
+	}
+	
+	return fib1;
 }
 
 )STORK_CODE";

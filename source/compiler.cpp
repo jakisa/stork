@@ -41,6 +41,9 @@ namespace stork {
 				++it;
 				ret = build_initialization_expression(ctx, it, type_id);
 				parse_token_value(ctx, it, reserved_token::close_round);
+			} else if (it->has_value(reserved_token::assign)) {
+				++it;
+				ret = build_initialization_expression(ctx, it, type_id);
 			} else {
 				ret = build_default_initialization(type_id);
 			}
@@ -258,7 +261,7 @@ namespace stork {
 			
 			return create_switch_statement(std::move(decl), std::move(expr), std::move(stmts), std::move(cases), dflt);
 		}
-		
+	
 		statement_ptr compile_var_statement(compiler_context& ctx, tokens_iterator& it) {
 			expression<lvalue>::ptr expr = compile_variable_declaration(ctx, it);
 			parse_token_value(ctx, it, reserved_token::semicolon);
