@@ -22,7 +22,7 @@ namespace stork {
 	public:
 		incomplete_function(compiler_context& ctx, tokens_iterator& it);
 		
-		incomplete_function(incomplete_function&& orig);
+		incomplete_function(incomplete_function&& orig) noexcept;
 		
 		const std::string& get_name() const;
 		

@@ -907,7 +907,7 @@ namespace stork {
 		return build_expression<number>(type_registry::get_number_handle(), context, it);
 	}
 	
-	expression<lvalue>::ptr build_retval_expression(compiler_context& context, tokens_iterator& it, type_handle type_id) {
+	expression<lvalue>::ptr build_initialization_expression(compiler_context& context, tokens_iterator& it, type_handle type_id) {
 		return build_expression<lvalue>(type_id, context, it);
 	}
 

@@ -423,39 +423,43 @@ namespace stork {
 		return std::make_unique<return_void_statement>();
 	}
 	
-	statement_ptr create_if_statement(std::vector<expression<number>::ptr> exprs, std::vector<block_statement_ptr> statements) {
-		return std::make_unique<if_statement>(std::move(exprs), std::move(statements));
-	}
-	
-	statement_ptr create_if_declare_statement(
+	statement_ptr create_if_statement(
 		expression<lvalue>::ptr declexpr,
 		std::vector<expression<number>::ptr> exprs,
 		std::vector<block_statement_ptr> statements
 	) {
-		return std::make_unique<if_declare_statement>(std::move(declexpr), std::move(exprs), std::move(statements));
+		if (declexpr) {
+			return std::make_unique<if_declare_statement>(std::move(declexpr), std::move(exprs), std::move(statements));
+		} else {
+			return std::make_unique<if_statement>(std::move(exprs), std::move(statements));
+		}
 	}
 	
 	statement_ptr create_switch_statement(
-		expression<number>::ptr expr,
-		std::vector<statement_ptr> statements,
-		std::unordered_map<number, size_t> cases,
-		size_t dflt
-	) {
-		return std::make_unique<switch_statement>(std::move(expr), std::move(statements), std::move(cases), dflt);
-	}
-
-	statement_ptr create_switch_declare_statement(
 		expression<lvalue>::ptr declexpr,
 		expression<number>::ptr expr,
 		std::vector<statement_ptr> statements,
 		std::unordered_map<number, size_t> cases,
 		size_t dflt
 	) {
-		return std::make_unique<switch_declare_statement>(std::move(declexpr), std::move(expr), std::move(statements), std::move(cases), dflt);
+		if (declexpr) {
+			return std::make_unique<switch_declare_statement>(
+				std::move(declexpr),
+				std::move(expr),
+				std::move(statements),
+				std::move(cases), dflt
+			);
+		} else {
+			return std::make_unique<switch_statement>(
+				std::move(expr),
+				std::move(statements),
+				std::move(cases), dflt
+			);
+		}
 	}
 	
 	
-	statement_ptr crete_while_statement(expression<number>::ptr expr, block_statement_ptr statement) {
+	statement_ptr create_while_statement(expression<number>::ptr expr, block_statement_ptr statement) {
 		return std::make_unique<while_statement>(std::move(expr), std::move(statement));
 	}
 	
@@ -472,7 +476,7 @@ namespace stork {
 		return std::make_unique<for_statement>(std::move(expr1), std::move(expr2), std::move(expr3), std::move(statement));
 	}
 	
-	statement_ptr create_for_declare_statement(
+	statement_ptr create_for_statement(
 		expression<lvalue>::ptr expr1,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,

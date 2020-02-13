@@ -6,6 +6,8 @@
 
 namespace stork {
 	incomplete_function::incomplete_function(compiler_context& ctx, tokens_iterator& it) {
+		parse_token_value(ctx, it, reserved_token::kw_function);
+		
 		function_type ft;
 		
 		ft.return_type_id = parse_type(ctx, it);
@@ -57,7 +59,7 @@ namespace stork {
 		ctx.create_function(_name, _ft);
 	}
 	
-	incomplete_function::incomplete_function(incomplete_function&& orig):
+	incomplete_function::incomplete_function(incomplete_function&& orig) noexcept:
 		_tokens(std::move(orig._tokens)),
 		_params(std::move(orig._params)),
 		_ft(orig._ft)
@@ -79,7 +81,7 @@ namespace stork {
 		
 		tokens_iterator it(_tokens);
 		
-		shared_block_statement_ptr stmt = compile_function_block(ctx, it);
+		shared_block_statement_ptr stmt = compile_function_block(ctx, it, ft->return_type_id);
 		
 		ctx.leave_scope();
 		

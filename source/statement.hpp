@@ -73,22 +73,13 @@ namespace stork {
 	
 	statement_ptr create_return_void_statement();
 	
-	statement_ptr create_if_statement(std::vector<expression<number>::ptr> exprs, std::vector<block_statement_ptr> statements);
-	
-	statement_ptr create_if_declare_statement(
+	statement_ptr create_if_statement(
 		expression<lvalue>::ptr declexpr,
 		std::vector<expression<number>::ptr> exprs,
 		std::vector<block_statement_ptr> statements
 	);
 	
 	statement_ptr create_switch_statement(
-		expression<number>::ptr expr,
-		std::vector<statement_ptr> statements,
-		std::unordered_map<number, size_t> cases,
-		size_t dflt
-	);
-
-	statement_ptr create_switch_declare_statement(
 		expression<lvalue>::ptr declexpr,
 		expression<number>::ptr expr,
 		std::vector<statement_ptr> statements,
@@ -97,7 +88,7 @@ namespace stork {
 	);
 	
 	
-	statement_ptr crete_while_statement(expression<number>::ptr expr, block_statement_ptr statement);
+	statement_ptr create_while_statement(expression<number>::ptr expr, block_statement_ptr statement);
 	
 	statement_ptr create_do_statement(expression<number>::ptr expr, block_statement_ptr statement);
 	
@@ -108,7 +99,7 @@ namespace stork {
 		block_statement_ptr statement
 	);
 	
-	statement_ptr create_for_declare_statement(
+	statement_ptr create_for_statement(
 		expression<lvalue>::ptr expr1,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
