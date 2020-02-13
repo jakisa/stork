@@ -521,7 +521,7 @@ namespace stork {
 				if constexpr (std::is_same<T1, lfunction>::value) {\
 					return std::make_unique<function_expression<R> >(info->index());\
 				} else {\
-					break;\
+					throw expression_builder_error();\
 				}\
 		}\
 	}
@@ -595,7 +595,7 @@ namespace stork {
 				std::get<node_operation>(child->get_value()) == node_operation::param\
 			) {\
 				arguments.push_back(\
-					build_lvalue_expression(ft->param_type_id[i-1].type_id, child, context)\
+					build_lvalue_expression(ft->param_type_id[i-1].type_id, child->get_children()[0], context)\
 				);\
 			} else {\
 				arguments.push_back(\

@@ -232,8 +232,10 @@ namespace stork {
 						unexpected_syntax(it);
 					}
 					cases.emplace(it->get_number(), stmts.size());
+					++it;
 					parse_token_value(ctx, it, reserved_token::colon);
 				} else if (it->has_value(reserved_token::kw_default)) {
+					++it;
 					dflt = stmts.size();
 					parse_token_value(ctx, it, reserved_token::colon);
 				} else {
@@ -303,6 +305,7 @@ namespace stork {
 				return create_return_void_statement();
 			} else {
 				expression<lvalue>::ptr expr = build_initialization_expression(ctx, it, pf.return_type_id);
+				parse_token_value(ctx, it, reserved_token::semicolon);
 				return create_return_statement(std::move(expr));
 			}
 		}
@@ -423,6 +426,7 @@ namespace stork {
 	
 	shared_block_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id) {
 		std::pair<std::vector<statement_ptr>, size_t> block = compile_block_contents(ctx, it, possible_flow::in_function(return_type_id));
+		block.first.emplace_back(create_return_statement(build_default_initialization(return_type_id)));
 		return create_shared_block_statement(std::move(block.first), block.second);
 	}
 	

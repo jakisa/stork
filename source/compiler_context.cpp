@@ -76,7 +76,7 @@ namespace stork{
 	}
 	
 	const identifier_info* function_param_lookup::create_param(std::string name, type_handle type_id) {
-		return insert_identifier(std::move(name), type_id, _next_param_index--, identifier_scope::function);
+		return insert_identifier(std::move(name), type_id, _next_param_index--, identifier_scope::local_variable);
 	}
 	
 	const identifier_info* function_lookup::create_identifier(std::string name, type_handle type_id) {

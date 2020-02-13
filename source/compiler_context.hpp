@@ -81,7 +81,7 @@ namespace stork {
 	
 	class compiler_context {
 	private:
-		function_param_lookup _functions;
+		function_lookup _functions;
 		global_variable_lookup _globals;
 		function_param_lookup* _params;
 		std::unique_ptr<local_variable_lookup> _locals;
