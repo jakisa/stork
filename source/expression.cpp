@@ -885,6 +885,14 @@ namespace stork {
 			void evaluate(runtime_context&) const override {
 			}
 		};
+		
+		template <typename T>
+		class default_initialization: public expression<lvalue> {
+		public:
+			lvalue evaluate(runtime_context &context) const override {
+				return std::make_shared<variable_impl<T> >(T{});
+			}
+		};
 	}
 
 	expression<void>::ptr build_empty_expression() {
@@ -901,5 +909,26 @@ namespace stork {
 	
 	expression<lvalue>::ptr build_retval_expression(compiler_context& context, tokens_iterator& it, type_handle type_id) {
 		return build_expression<lvalue>(type_id, context, it);
+	}
+
+	expression<lvalue>::ptr build_default_initialization(type_handle type_id) {
+		return std::visit(overloaded{
+			[&](simple_type st){
+				switch (st) {
+					case simple_type::number:
+						return expression<lvalue>::ptr(std::make_unique<default_initialization<number> >());
+					case simple_type::string:
+						return expression<lvalue>::ptr(std::make_unique<default_initialization<string> >());
+					case simple_type::nothing:
+						return expression<lvalue>::ptr(nullptr); //cannot happen
+				}
+			},
+			[&](const function_type& ft) {
+				return expression<lvalue>::ptr(std::make_unique<default_initialization<function> >());
+			},
+			[&](const array_type& at) {
+				return expression<lvalue>::ptr(std::make_unique<default_initialization<array> >());
+			}
+		}, *type_id);
 	}
 }

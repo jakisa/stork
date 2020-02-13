@@ -7,6 +7,7 @@
 #include <string>
 #include "variable.hpp"
 #include "lookup.hpp"
+#include "expression.hpp"
 
 namespace stork {
 	class runtime_context{
@@ -16,7 +17,7 @@ namespace stork {
 		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
 	public:
-		runtime_context(size_t globals, std::vector<lfunction> functions);
+		runtime_context(std::vector<expression<lvalue>::ptr> globals, std::vector<lfunction> functions);
 	
 		variable_ptr& global(int idx);
 

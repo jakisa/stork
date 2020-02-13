@@ -213,6 +213,8 @@ namespace stork {
 			throw unexpected_syntax(it);
 		}
 		
+		std::vector<expression<lvalue>::ptr> initializers;
+		
 		while (it) {
 			bool public_function = false;
 			
@@ -232,6 +234,6 @@ namespace stork {
 			}
 		}
 		
-		return runtime_context(0, {});
+		return runtime_context(std::move(initializers), {});
 	}
 }

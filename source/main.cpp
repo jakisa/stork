@@ -13,6 +13,23 @@
 namespace {
 	using namespace stork;
 	
+	/*
+	template <typename T>
+	class const_initialization: public expression<initialization> {
+	private:
+		T _c;
+	public:
+		const_initialization(T c):
+			_c(std::move(c))
+		{
+		}
+		
+		initialization evaluate(runtime_context &context) const override {
+			return initialization(_c);
+		}
+	};
+	*/
+	
 	void create_identifiers(compiler_context& context) {
 		context.create_identifier("a", type_registry::get_number_handle());
 		context.create_identifier("b", type_registry::get_number_handle());
@@ -141,7 +158,15 @@ int main() {
 	compiler_context ccontext;
 	create_identifiers(ccontext);
 	
-	runtime_context rcontext(16, {});
+	std::vector<expression<lvalue>::ptr> initializers;
+	for (int i = 0; i < 16; ++i) {
+		initializers.emplace_back(build_default_initialization(type_registry::get_number_handle()));
+	}
+	
+	runtime_context rcontext(
+		std::move(initializers),
+		{}
+	);
 	prepare_runtime_context(rcontext);
 	
 	do {
