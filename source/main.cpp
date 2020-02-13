@@ -15,16 +15,16 @@ public function number fib(number idx) {
 		return 0;
 	}
 	
-	number fib0 = 0;
-	number fib1 = 1;
+	number[] arr;
 	
-	for (number i = 1; i < idx; ++i) {
-		number fib2 = fib0 + fib1;
-		fib0 = fib1;
-		fib1 = fib2;
+	arr[0] = 0;
+	arr[1] = 1;
+	
+	for (number i = 2; i <= idx; ++i) {
+		arr[i] = arr[i-2] + arr[i-1];
 	}
 	
-	return fib1;
+	return arr[idx];
 }
 
 )STORK_CODE";

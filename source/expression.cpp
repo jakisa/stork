@@ -425,7 +425,13 @@ namespace stork {
 				larray arr = _expr1->evaluate(context);
 				int idx = int(_expr2->evaluate(context));
 				
-				runtime_assertion(idx >= 0 && idx < arr->value.size(), "Subscript out of range");
+				runtime_assertion(idx >= 0, "Negative index is invalid");
+				
+				while (idx >= arr->value.size()) {
+					using variable_type = typename T::element_type;
+					using value_type = typename variable_type::value_type;
+					arr->value.push_back(std::make_unique<variable_type>(value_type{}));
+				}
 
 				return convert<R>(
 					arr->value[idx]->template static_pointer_downcast<T>()

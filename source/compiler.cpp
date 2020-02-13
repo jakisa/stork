@@ -411,7 +411,8 @@ namespace stork {
 				throw unexpected_syntax(it);
 		}
 		
-		while ((++it)->is_reserved_token()) {
+		++it;
+		while (it->is_reserved_token()) {
 			switch (it->get_reserved_token()) {
 				case reserved_token::open_square:
 					parse_token_value(ctx, ++it, reserved_token::close_square);
@@ -434,7 +435,7 @@ namespace stork {
 								ft.param_type_id.push_back({param_type, false});
 							}
 						}
-						
+						++it;
 						t = ctx.get_handle(ft);
 					}
 					break;
