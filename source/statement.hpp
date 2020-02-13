@@ -60,8 +60,6 @@ namespace stork {
 	
 	statement_ptr create_simple_statement(expression<void>::ptr expr);
 	
-	statement_ptr create_global_declaration_statement(int idx, expression<lvalue>::ptr expr);
-	
 	statement_ptr create_local_declaration_statement(expression<lvalue>::ptr expr);
 	
 	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements, size_t scope_vars);

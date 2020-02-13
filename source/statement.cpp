@@ -81,23 +81,6 @@ namespace stork {
 		return flow::normal_flow();
 	}
 	
-	class global_declaration_statement: public statement {
-	private:
-		int _idx;
-		expression<lvalue>::ptr _expr;
-	public:
-		global_declaration_statement(int idx, expression<lvalue>::ptr expr):
-			_idx(idx),
-			_expr(std::move(expr))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			context.global(_idx) = _expr->evaluate(context);
-			return flow::normal_flow();
-		}
-	};
-	
 	class local_declaration_statement: public statement {
 	private:
 		expression<lvalue>::ptr _expr;
@@ -410,10 +393,6 @@ namespace stork {
 	
 	statement_ptr create_simple_statement(expression<void>::ptr expr) {
 		return std::make_unique<simple_statement>(std::move(expr));
-	}
-	
-	statement_ptr create_global_declaration_statement(int idx, expression<lvalue>::ptr expr) {
-		return std::make_unique<global_declaration_statement>(idx, std::move(expr));
 	}
 	
 	statement_ptr create_local_declaration_statement(expression<lvalue>::ptr expr) {

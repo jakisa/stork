@@ -12,6 +12,11 @@ namespace stork {
 			return unexpected_syntax_error(std::to_string(it->get_value()), it->get_line_number(), it->get_char_index());
 		}
 		
+		//TODO:
+		expression<lvalue>::ptr compile_variable_declaration(compiler_context& ctx, tokens_iterator& it) {
+			return {};
+		}
+		
 		statement_ptr compile_simple_statement(compiler_context& ctx, tokens_iterator& it);
 		
 		statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it);
@@ -207,7 +212,6 @@ namespace stork {
 		return create_shared_block_statement(std::move(block.first), block.second);
 	}
 	
-	//TODO:
 	runtime_context compile(compiler_context& ctx, tokens_iterator& it) {
 		if (!std::holds_alternative<reserved_token>(it->get_value())) {
 			throw unexpected_syntax(it);
@@ -215,11 +219,15 @@ namespace stork {
 		
 		std::vector<expression<lvalue>::ptr> initializers;
 		
+		std::vector<incomplete_function> incomplete_functions;
+		std::unordered_map<std::string, size_t> public_functions;
+		
 		while (it) {
 			bool public_function = false;
 			
 			switch (it->get_reserved_token()) {
 				case reserved_token::kw_var:
+					initializers.push_back(compile_variable_declaration(ctx, it));
 					break;
 				case reserved_token::kw_public:
 					public_function = true;
@@ -227,6 +235,10 @@ namespace stork {
 						throw unexpected_syntax(it);
 					}
 				case reserved_token::kw_function:
+					incomplete_functions.emplace_back(ctx, it);
+					if (public_function) {
+						public_functions.emplace(incomplete_functions.back().get_name(), incomplete_functions.size() - 1);
+					}
 					break;
 				default:
 					throw unexpected_syntax(it);
@@ -234,6 +246,13 @@ namespace stork {
 			}
 		}
 		
-		return runtime_context(std::move(initializers), {});
+		std::vector<lfunction> functions;
+		functions.reserve(incomplete_functions.size());
+		
+		for (incomplete_function& f : incomplete_functions) {
+			functions.emplace_back(std::make_shared<variable_impl<function> >(f.compile(ctx)));
+		}
+		
+		return runtime_context(std::move(initializers), std::move(functions), std::move(public_functions));
 	}
 }

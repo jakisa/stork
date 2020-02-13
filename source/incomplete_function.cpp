@@ -10,7 +10,7 @@ namespace stork {
 		
 		ft.return_type_id = parse_type(ctx, it);
 		
-		std::string name = parse_declaration_name(ctx, it);
+		_name = parse_declaration_name(ctx, it);
 		parse_token_value(ctx, it, reserved_token::open_round);
 		
 		while(!it->has_value(reserved_token::close_round)) {
@@ -54,12 +54,18 @@ namespace stork {
 		
 		_ft = ctx.get_handle(ft);
 		
-		const identifier_info* id = ctx.create_function(std::move(name), _ft);
-		_index = id->index();
+		ctx.create_function(_name, _ft);
 	}
 	
-	size_t incomplete_function::index() const {
-		return _index;
+	incomplete_function::incomplete_function(incomplete_function&& orig):
+		_tokens(std::move(orig._tokens)),
+		_params(std::move(orig._params)),
+		_ft(orig._ft)
+	{
+	}
+	
+	const std::string& incomplete_function::get_name() const {
+		return _name;
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {

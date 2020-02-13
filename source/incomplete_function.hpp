@@ -14,6 +14,7 @@ namespace stork {
 
 	class incomplete_function {
 	private:
+		std::string _name;
 		std::deque<token> _tokens;
 		size_t _index;
 		std::vector<std::string> _params;
@@ -21,7 +22,9 @@ namespace stork {
 	public:
 		incomplete_function(compiler_context& ctx, tokens_iterator& it);
 		
-		size_t index() const;
+		incomplete_function(incomplete_function&& orig);
+		
+		const std::string& get_name() const;
 		
 		function compile(compiler_context& ctx);
 	};

@@ -165,6 +165,7 @@ int main() {
 	
 	runtime_context rcontext(
 		std::move(initializers),
+		{},
 		{}
 	);
 	prepare_runtime_context(rcontext);

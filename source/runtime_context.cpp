@@ -1,16 +1,31 @@
 #include "runtime_context.hpp"
 
 namespace stork {
-	runtime_context::runtime_context(std::vector<expression<lvalue>::ptr> globals, std::vector<lfunction> functions) :
+	runtime_context::runtime_context(
+		std::vector<expression<lvalue>::ptr> initializers,
+		std::vector<lfunction> functions,
+		std::unordered_map<std::string, size_t> public_functions
+	) :
 		_functions(std::move(functions)),
-		_globals(globals.size()),
+		_public_functions(std::move(public_functions)),
+		_initializers(std::move(initializers)),
 		_stack(1)
 	{
 		_retval_idx.push(0);
 		
-		for (size_t i = 0; i < globals.size(); ++i) {
-			_globals[i] = globals[i]->evaluate(*this);
+		_globals.reserve(_initializers.size());
+	}
+	
+	void runtime_context::initialize() {
+		_globals.clear();
+		
+		for (const auto& initializer : _initializers) {
+			_globals.emplace_back(initializer->evaluate(*this));
 		}
+	}
+	
+	void runtime_context::call_public_function(const std::string& name) {
+		_functions[_public_functions[name]]->value(*this);
 	}
 
 	variable_ptr& runtime_context::global(int idx) {
