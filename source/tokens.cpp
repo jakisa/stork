@@ -87,7 +87,6 @@ namespace stork {
 			{"continue", reserved_token::kw_continue},
 			{"return", reserved_token::kw_return},
 
-			{"var", reserved_token::kw_var},
 			{"function", reserved_token::kw_function},
 			
 			{"void", reserved_token::kw_void},

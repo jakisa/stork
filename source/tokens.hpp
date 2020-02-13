@@ -85,7 +85,6 @@ namespace stork {
 		kw_continue,
 		kw_return,
 
-		kw_var,
 		kw_function,
 		
 		kw_void,

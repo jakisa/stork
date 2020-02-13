@@ -5,6 +5,7 @@
 #include "incomplete_function.hpp"
 #include "tokenizer.hpp"
 #include "runtime_context.hpp"
+#include "helpers.hpp"
 
 namespace stork {
 	namespace {
@@ -26,12 +27,28 @@ namespace stork {
 			}
 		};
 	
+		bool is_typename(const compiler_context&, const tokens_iterator& it) {
+			return std::visit(overloaded{
+				[](reserved_token t) {
+					switch (t) {
+						case reserved_token::kw_number:
+						case reserved_token::kw_string:
+							return true;
+						default:
+							return false;
+					}
+				},
+				[](const token_value&) {
+					return false;
+				}
+			}, it->get_value());
+		}
+	
 		error unexpected_syntax(const tokens_iterator& it) {
 			return unexpected_syntax_error(std::to_string(it->get_value()), it->get_line_number(), it->get_char_index());
 		}
 		
 		expression<lvalue>::ptr compile_variable_declaration(compiler_context& ctx, tokens_iterator& it) {
-			parse_token_value(ctx, it, reserved_token::kw_var);
 			type_handle type_id = parse_type(ctx, it);
 			std::string name = parse_declaration_name(ctx, it);
 			
@@ -88,8 +105,6 @@ namespace stork {
 						return {compile_if_statement(ctx, it, pf), false};
 					case reserved_token::kw_switch:
 						return {compile_switch_statement(ctx, it, pf.add_switch()), false};
-					case reserved_token::kw_var:
-						return {compile_var_statement(ctx, it), true};
 					case reserved_token::kw_break:
 						return {compile_break_statement(ctx, it, pf), false};
 					case reserved_token::kw_continue:
@@ -99,6 +114,10 @@ namespace stork {
 					default:
 						break;
 				}
+			}
+			
+			if (is_typename(ctx, it)) {
+				return {compile_var_statement(ctx, it), true};
 			}
 			
 			if (it->has_value(reserved_token::open_curly)) {
@@ -121,7 +140,7 @@ namespace stork {
 			expression<lvalue>::ptr decl;
 			expression<void>::ptr expr1;
 			
-			if (it->has_value(reserved_token::kw_var)) {
+			if (is_typename(ctx, it)) {
 				decl = compile_variable_declaration(ctx, it);
 			} else {
 				expr1 = build_void_expression(ctx, it);
@@ -177,7 +196,7 @@ namespace stork {
 			
 			expression<lvalue>::ptr decl;
 			
-			if (it->has_value(reserved_token::kw_var)) {
+			if (is_typename(ctx, it)) {
 				decl = compile_variable_declaration(ctx, it);
 				parse_token_value(ctx, it, reserved_token::semicolon);
 			}
@@ -214,7 +233,7 @@ namespace stork {
 			
 			expression<lvalue>::ptr decl;
 			
-			if (it->has_value(reserved_token::kw_var)) {
+			if (is_typename(ctx, it)) {
 				decl = compile_variable_declaration(ctx, it);
 				parse_token_value(ctx, it, reserved_token::semicolon);
 			}
@@ -447,10 +466,6 @@ namespace stork {
 			bool public_function = false;
 			
 			switch (it->get_reserved_token()) {
-				case reserved_token::kw_var:
-					initializers.push_back(compile_variable_declaration(ctx, it));
-					parse_token_value(ctx, it, reserved_token::semicolon);
-					break;
 				case reserved_token::kw_public:
 					public_function = true;
 					if (!(++it)->has_value(reserved_token::kw_function)) {
@@ -463,8 +478,9 @@ namespace stork {
 					}
 					break;
 				default:
-					throw unexpected_syntax(it);
-					
+					initializers.push_back(compile_variable_declaration(ctx, it));
+					parse_token_value(ctx, it, reserved_token::semicolon);
+					break;
 			}
 		}
 		

@@ -15,11 +15,11 @@ public function number fib(number idx) {
 		return 0;
 	}
 	
-	var number fib0 = 0;
-	var number fib1 = 1;
+	number fib0 = 0;
+	number fib1 = 1;
 	
-	for (var number i = 1; i < idx; ++i) {
-		var number fib2 = fib0 + fib1;
+	for (number i = 1; i < idx; ++i) {
+		number fib2 = fib0 + fib1;
 		fib0 = fib1;
 		fib1 = fib2;
 	}
