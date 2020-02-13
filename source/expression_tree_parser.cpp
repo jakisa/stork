@@ -446,10 +446,10 @@ namespace stork {
 	}
 	
 	node_ptr parse_expression_tree(
-		compiler_context& context, tokens_iterator& it, type_handle type_id, bool lvalue, bool allow_comma, bool allow_empty
+		compiler_context& context, tokens_iterator& it, type_handle type_id, bool allow_comma
 	) {
-		node_ptr ret = parse_expression_tree_impl(context, it, allow_comma, allow_empty);
-		ret->check_conversion(type_id, lvalue);
+		node_ptr ret = parse_expression_tree_impl(context, it, allow_comma, false);
+		ret->check_conversion(type_id, false);
 		return ret;
 	}
 }

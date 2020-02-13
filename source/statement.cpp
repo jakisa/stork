@@ -83,15 +83,17 @@ namespace stork {
 	
 	class local_declaration_statement: public statement {
 	private:
-		expression<lvalue>::ptr _expr;
+		std::vector<expression<lvalue>::ptr> _decls;
 	public:
-		local_declaration_statement(expression<lvalue>::ptr expr):
-			_expr(std::move(expr))
+		local_declaration_statement(std::vector<expression<lvalue>::ptr> decls):
+			_decls(std::move(decls))
 		{
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_expr->evaluate(context));
+			for (const expression<lvalue>::ptr& decl : _decls) {
+				context.push(decl->evaluate(context));
+			}
 			return flow::normal_flow();
 		}
 	};
@@ -168,24 +170,26 @@ namespace stork {
 	
 	class if_declare_statement: public if_statement {
 	private:
-		expression<lvalue>::ptr _declexpr;
+		std::vector<expression<lvalue>::ptr> _decls;
 	public:
 		if_declare_statement(
-			expression<lvalue>::ptr declexpr,
+			std::vector<expression<lvalue>::ptr> decls,
 			std::vector<expression<number>::ptr> exprs,
 			std::vector<block_statement_ptr> statements
 		):
 			if_statement(std::move(exprs), std::move(statements)),
-			_declexpr(std::move(declexpr))
+			_decls(std::move(decls))
 		{
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_declexpr->evaluate(context));
+			for (const expression<lvalue>::ptr& decl : _decls) {
+				context.push(decl->evaluate(context));
+			}
 			
 			flow ret = if_statement::execute(context);
 			
-			context.end_scope(1);
+			context.end_scope(_decls.size());
 			
 			return ret;
 		}
@@ -230,26 +234,28 @@ namespace stork {
 	
 	class switch_declare_statement: public switch_statement {
 	private:
-		expression<lvalue>::ptr _declexpr;
+		std::vector<expression<lvalue>::ptr> _decls;
 	public:
 		switch_declare_statement(
-			expression<lvalue>::ptr declexpr,
+			std::vector<expression<lvalue>::ptr> decls,
 			expression<number>::ptr expr,
 			std::vector<statement_ptr> statements,
 			std::unordered_map<number, size_t> cases,
 			size_t dflt
 		):
-			_declexpr(std::move(declexpr)),
+			_decls(std::move(decls)),
 			switch_statement(std::move(expr), std::move(statements), std::move(cases), dflt)
 		{
 		}
 		
 		flow execute(runtime_context& context) override {
-			context.push(_declexpr->evaluate(context));
+			for (const expression<lvalue>::ptr& decl : _decls) {
+				context.push(decl->evaluate(context));
+			}
 			
 			flow ret = switch_statement::execute(context);
 			
-			context.end_scope(1);
+			context.end_scope(_decls.size());
 			
 			return ret;
 		}
@@ -350,18 +356,18 @@ namespace stork {
 	
 	class for_declare_statement: public statement {
 	private:
-		expression<lvalue>::ptr _expr1;
+		std::vector<expression<lvalue>::ptr> _decls;
 		expression<number>::ptr _expr2;
 		expression<void>::ptr _expr3;
 		block_statement_ptr _statement;
 	public:
 		for_declare_statement(
-			expression<lvalue>::ptr expr1,
+			std::vector<expression<lvalue>::ptr> decls,
 			expression<number>::ptr expr2,
 			expression<void>::ptr expr3,
 			block_statement_ptr statement
 		):
-			_expr1(std::move(expr1)),
+			_decls(std::move(decls)),
 			_expr2(std::move(expr2)),
 			_expr3(std::move(expr3)),
 			_statement(std::move(statement))
@@ -369,7 +375,10 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
-			for (context.push(_expr1->evaluate(context)); _expr2->evaluate(context); _expr3->evaluate(context)) {
+			for (const expression<lvalue>::ptr& decl : _decls) {
+				context.push(decl->evaluate(context));
+			}
+			for (; _expr2->evaluate(context); _expr3->evaluate(context)) {
 				switch (flow f = _statement->execute(context); f.type()) {
 					case flow_type::f_normal:
 					case flow_type::f_continue:
@@ -381,7 +390,7 @@ namespace stork {
 				}
 			}
 			
-			context.end_scope(1);
+			context.end_scope(_decls.size());
 			
 			return flow::normal_flow();
 		}
@@ -395,8 +404,8 @@ namespace stork {
 		return std::make_unique<simple_statement>(std::move(expr));
 	}
 	
-	statement_ptr create_local_declaration_statement(expression<lvalue>::ptr expr) {
-		return std::make_unique<local_declaration_statement>(std::move(expr));
+	statement_ptr create_local_declaration_statement(std::vector<expression<lvalue>::ptr> decls) {
+		return std::make_unique<local_declaration_statement>(std::move(decls));
 	}
 	
 	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements, size_t scope_vars) {
@@ -424,27 +433,27 @@ namespace stork {
 	}
 	
 	statement_ptr create_if_statement(
-		expression<lvalue>::ptr declexpr,
+		std::vector<expression<lvalue>::ptr> decls,
 		std::vector<expression<number>::ptr> exprs,
 		std::vector<block_statement_ptr> statements
 	) {
-		if (declexpr) {
-			return std::make_unique<if_declare_statement>(std::move(declexpr), std::move(exprs), std::move(statements));
+		if (!decls.empty()) {
+			return std::make_unique<if_declare_statement>(std::move(decls), std::move(exprs), std::move(statements));
 		} else {
 			return std::make_unique<if_statement>(std::move(exprs), std::move(statements));
 		}
 	}
 	
 	statement_ptr create_switch_statement(
-		expression<lvalue>::ptr declexpr,
+		std::vector<expression<lvalue>::ptr> decls,
 		expression<number>::ptr expr,
 		std::vector<statement_ptr> statements,
 		std::unordered_map<number, size_t> cases,
 		size_t dflt
 	) {
-		if (declexpr) {
+		if (!decls.empty()) {
 			return std::make_unique<switch_declare_statement>(
-				std::move(declexpr),
+				std::move(decls),
 				std::move(expr),
 				std::move(statements),
 				std::move(cases), dflt
@@ -477,11 +486,11 @@ namespace stork {
 	}
 	
 	statement_ptr create_for_statement(
-		expression<lvalue>::ptr expr1,
+		std::vector<expression<lvalue>::ptr> decls,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
 		block_statement_ptr statement
 	) {
-		return std::make_unique<for_declare_statement>(std::move(expr1), std::move(expr2), std::move(expr3), std::move(statement));
+		return std::make_unique<for_declare_statement>(std::move(decls), std::move(expr2), std::move(expr3), std::move(statement));
 	}
 }

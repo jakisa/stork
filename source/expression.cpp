@@ -863,12 +863,12 @@ namespace stork {
 		}
 		
 		template<typename R>
-		typename expression<R>::ptr build_expression(type_handle type_id, compiler_context& context, tokens_iterator& it) {
+		typename expression<R>::ptr build_expression(type_handle type_id, compiler_context& context, tokens_iterator& it, bool allow_comma) {
 			size_t line_number = it->get_line_number();
 			size_t char_index = it->get_char_index();
 			
 			try {
-				node_ptr np = parse_expression_tree(context, it, type_id, false, true, false);
+				node_ptr np = parse_expression_tree(context, it, type_id, allow_comma);
 				
 				if constexpr(std::is_same<R, lvalue>::value) {
 					return build_lvalue_expression(
@@ -906,15 +906,20 @@ namespace stork {
 	}
 
 	expression<void>::ptr build_void_expression(compiler_context& context, tokens_iterator& it) {
-		return build_expression<void>(type_registry::get_void_handle(), context, it);
+		return build_expression<void>(type_registry::get_void_handle(), context, it, true);
 	}
 	
 	expression<number>::ptr build_number_expression(compiler_context& context, tokens_iterator& it) {
-		return build_expression<number>(type_registry::get_number_handle(), context, it);
+		return build_expression<number>(type_registry::get_number_handle(), context, it, true);
 	}
 	
-	expression<lvalue>::ptr build_initialization_expression(compiler_context& context, tokens_iterator& it, type_handle type_id) {
-		return build_expression<lvalue>(type_id, context, it);
+	expression<lvalue>::ptr build_initialization_expression(
+		compiler_context& context,
+		tokens_iterator& it,
+		type_handle type_id,
+		bool allow_comma
+	) {
+		return build_expression<lvalue>(type_id, context, it, allow_comma);
 	}
 
 	expression<lvalue>::ptr build_default_initialization(type_handle type_id) {
