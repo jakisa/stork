@@ -12,6 +12,31 @@ namespace stork {
 		return std::make_shared<variable_impl<T> >(clone_variable_value(value));
 	}
 	
+	template<typename T>
+	std::string variable_impl<T>::to_string() const {
+		if constexpr(std::is_same<number, T>::value) {
+			if (value == int(value)) {
+				return std::to_string(int(value));
+			} else {
+				return std::to_string(value);
+			}
+		} else if constexpr(std::is_same<string, T>::value) {
+			return *value;
+		} else if constexpr(std::is_same<function, T>::value) {
+			return "FUNCTION";
+		} else {
+			std::string ret = "[";
+			const char* separator = "";
+			for (const variable_ptr& v : value) {
+				ret += separator;
+				ret += v->to_string();
+				separator = ", ";
+			}
+			ret += "]";
+			return ret;
+		}
+	}
+	
 	template class variable_impl<number>;
 	template class variable_impl<string>;
 	template class variable_impl<function>;

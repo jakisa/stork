@@ -45,6 +45,8 @@ namespace stork {
 				ret = build_default_initialization(type_id);
 			}
 			
+			ctx.create_identifier(std::move(name), type_id);
+			
 			return ret;
 		}
 		
@@ -117,7 +119,6 @@ namespace stork {
 			expression<void>::ptr expr1;
 			
 			if (it->has_value(reserved_token::kw_var)) {
-				++it;
 				decl = compile_variable_declaration(ctx, it);
 			} else {
 				expr1 = build_void_expression(ctx, it);
@@ -358,6 +359,8 @@ namespace stork {
 		if (!ctx.can_declare(ret)) {
 			throw already_declared_error(ret, it->get_line_number(), it->get_char_index());
 		}
+
+		++it;
 		
 		return ret;
 	}

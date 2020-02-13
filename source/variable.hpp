@@ -45,6 +45,8 @@ namespace stork {
 		}
 		
 		virtual variable_ptr clone() const = 0;
+		
+		virtual std::string to_string() const = 0;
 	};
 	
 	template<typename T>
@@ -57,6 +59,8 @@ namespace stork {
 		variable_impl(value_type value);
 		
 		variable_ptr clone() const override;
+	
+		std::string to_string() const override;
 	};
 	
 	number clone_variable_value(number value);

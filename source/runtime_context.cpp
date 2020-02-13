@@ -14,6 +14,7 @@ namespace stork {
 		_retval_idx.push(0);
 		
 		_globals.reserve(_initializers.size());
+		initialize();
 	}
 	
 	void runtime_context::initialize() {

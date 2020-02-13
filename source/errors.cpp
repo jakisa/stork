@@ -120,7 +120,7 @@ namespace stork {
 			if (c < 0 || c == '\n' || c == '\r') {
 				break;
 			}
-			line += char(c);
+			line += char(c == '\t' ? ' ' : c);
 		}
 		
 		output << line << std::endl;
