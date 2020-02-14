@@ -207,7 +207,7 @@ namespace stork {
 		UNARY_EXPRESSION(lnot, return !t1);
 		
 		UNARY_EXPRESSION(size,
-			return safe_value(t1).size();
+			return t1->value.size();
 		);
 
 #undef UNARY_EXPRESSION
@@ -554,7 +554,7 @@ namespace stork {
 				);\
 			} else {\
 				return expression_ptr(\
-					std::make_unique<constant_expression<R> >(1)\
+					std::make_unique<constant_expression<R, number> >(1)\
 				);\
 			}
 

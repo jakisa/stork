@@ -19,6 +19,17 @@ namespace stork {
 		std::vector<variable_ptr> _globals;
 		std::deque<variable_ptr> _stack;
 		std::stack<size_t> _retval_idx;
+		
+		class scope_raii{
+			scope_raii(const scope_raii&) = delete;
+			void operator=(const scope_raii&) = delete;
+		private:
+			runtime_context* _context;
+			size_t _stack_size;
+		public:
+			scope_raii(size_t stack_size, runtime_context* context);
+			~scope_raii();
+		};
 	public:
 		runtime_context(
 			std::vector<expression<lvalue>::ptr> initializers,
@@ -26,9 +37,9 @@ namespace stork {
 			std::unordered_map<std::string, size_t> public_functions
 		);
 	
-		void call_public_function(const std::string& name);
-	
 		void initialize();
+	
+		void call_public_function(const std::string& name);
 	
 		variable_ptr& global(int idx);
 
@@ -40,11 +51,11 @@ namespace stork {
 		
 		void push(variable_ptr v);
 		
-		void end_scope(size_t scope_vars);
-		
 		void call();
 		
 		variable_ptr end_function(size_t params);
+
+		scope_raii enter_scope();
 	};
 }
 

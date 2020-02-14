@@ -49,10 +49,6 @@ namespace stork {
 		_stack.push_back(std::move(v));
 	}
 	
-	void runtime_context::end_scope(size_t scope_vars) {
-		_stack.resize(_stack.size() - scope_vars);
-	}
-	
 	void runtime_context::call() {
 		_retval_idx.push(_stack.size());
 		_stack.resize(_retval_idx.top() + 1);
@@ -63,5 +59,19 @@ namespace stork {
 		_stack.resize(_retval_idx.top() - params);
 		_retval_idx.pop();
 		return ret;
+	}
+	
+	runtime_context::scope_raii::scope_raii(size_t stack_size, runtime_context* context):
+		_context(context),
+		_stack_size(stack_size)
+	{
+	}
+			
+	runtime_context::scope_raii::~scope_raii() {
+		_context->_stack.resize(_stack_size);
+	}
+	
+	runtime_context::scope_raii runtime_context::enter_scope() {
+		return scope_raii(_stack.size(), this);
 	}
 }

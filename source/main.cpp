@@ -57,10 +57,12 @@ int main() {
 	
 		runtime_context rctx = compile(ctx, it);
 	
-		rctx.push(std::make_unique<variable_impl<number> >(6));
+		rctx.push(std::make_unique<variable_impl<number> >(20));
 		rctx.call();
 		rctx.call_public_function("fib");
 		variable_ptr ret = rctx.end_function(0);
+		
+		std::cout << ret->to_string() << std::endl;
 		
 		rctx.call();
 		rctx.call_public_function("test_size");

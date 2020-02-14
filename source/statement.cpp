@@ -62,13 +62,13 @@ namespace stork {
 		}
 	};
 	
-	block_statement::block_statement(std::vector<statement_ptr> statements, size_t scope_vars):
-		_statements(std::move(statements)),
-		_scope_vars(scope_vars)
+	block_statement::block_statement(std::vector<statement_ptr> statements):
+		_statements(std::move(statements))
 	{
 	}
 		
 	flow block_statement::execute(runtime_context& context) {
+		auto _ = context.enter_scope();
 		for (const statement_ptr& statement : _statements) {
 			switch (flow f = statement->execute(context); f.type()) {
 				case flow_type::f_normal:
@@ -77,7 +77,6 @@ namespace stork {
 					return f;
 			}
 		}
-		context.end_scope(_scope_vars);
 		return flow::normal_flow();
 	}
 	
@@ -183,13 +182,13 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
+			auto _ = context.enter_scope();
+			
 			for (const expression<lvalue>::ptr& decl : _decls) {
 				context.push(decl->evaluate(context));
 			}
 			
 			flow ret = if_statement::execute(context);
-			
-			context.end_scope(_decls.size());
 			
 			return ret;
 		}
@@ -249,13 +248,13 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
+			auto _ = context.enter_scope();
+		
 			for (const expression<lvalue>::ptr& decl : _decls) {
 				context.push(decl->evaluate(context));
 			}
 			
 			flow ret = switch_statement::execute(context);
-			
-			context.end_scope(_decls.size());
 			
 			return ret;
 		}
@@ -375,6 +374,8 @@ namespace stork {
 		}
 		
 		flow execute(runtime_context& context) override {
+			auto _ = context.enter_scope();
+			
 			for (const expression<lvalue>::ptr& decl : _decls) {
 				context.push(decl->evaluate(context));
 			}
@@ -389,8 +390,6 @@ namespace stork {
 						return f;
 				}
 			}
-			
-			context.end_scope(_decls.size());
 			
 			return flow::normal_flow();
 		}
@@ -408,12 +407,12 @@ namespace stork {
 		return std::make_unique<local_declaration_statement>(std::move(decls));
 	}
 	
-	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements, size_t scope_vars) {
-		return std::make_unique<block_statement>(std::move(statements), scope_vars);
+	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements) {
+		return std::make_unique<block_statement>(std::move(statements));
 	}
 	
-	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements, size_t scope_vars) {
-		return std::make_shared<block_statement>(std::move(statements), scope_vars);
+	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements) {
+		return std::make_shared<block_statement>(std::move(statements));
 	}
 
 	statement_ptr create_break_statement(int break_level) {

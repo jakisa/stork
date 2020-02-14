@@ -48,7 +48,7 @@ namespace stork {
 		std::vector<statement_ptr> _statements;
 		size_t _scope_vars;
 	public:
-		block_statement(std::vector<statement_ptr> statements, size_t scope_vars);
+		block_statement(std::vector<statement_ptr> statements);
 		
 		flow execute(runtime_context& context) override;
 	};
@@ -62,8 +62,8 @@ namespace stork {
 	
 	statement_ptr create_local_declaration_statement(std::vector<expression<lvalue>::ptr> decls);
 	
-	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements, size_t scope_vars);
-	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements, size_t scope_vars);
+	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements);
+	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements);
 	
 	statement_ptr create_break_statement(int break_level);
 	

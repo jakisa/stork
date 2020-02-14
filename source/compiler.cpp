@@ -91,7 +91,7 @@ namespace stork {
 		
 		statement_ptr compile_switch_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
 		
-		std::pair<statement_ptr, int> compile_var_statement(compiler_context& ctx, tokens_iterator& it);
+		statement_ptr compile_var_statement(compiler_context& ctx, tokens_iterator& it);
 		
 		statement_ptr compile_break_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
 		
@@ -99,39 +99,43 @@ namespace stork {
 		
 		statement_ptr compile_return_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
 		
-		std::pair<statement_ptr, int> compile_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+		statement_ptr compile_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf, bool in_switch) {
 			if (it->is_reserved_token()) {
 				switch (it->get_reserved_token()) {
 					case reserved_token::kw_for:
-						return {compile_for_statement(ctx, it, pf.add_loop()), 0};
+						return compile_for_statement(ctx, it, pf.add_loop());
 					case reserved_token::kw_while:
-						return {compile_while_statement(ctx, it, pf.add_loop()), 0};
+						return compile_while_statement(ctx, it, pf.add_loop());
 					case reserved_token::kw_do:
-						return {compile_do_statement(ctx, it, pf.add_loop()), 0};
+						return compile_do_statement(ctx, it, pf.add_loop());
 					case reserved_token::kw_if:
-						return {compile_if_statement(ctx, it, pf), 0};
+						return compile_if_statement(ctx, it, pf);
 					case reserved_token::kw_switch:
-						return {compile_switch_statement(ctx, it, pf.add_switch()), 0};
+						return compile_switch_statement(ctx, it, pf.add_switch());
 					case reserved_token::kw_break:
-						return {compile_break_statement(ctx, it, pf), 0};
+						return compile_break_statement(ctx, it, pf);
 					case reserved_token::kw_continue:
-						return {compile_continue_statement(ctx, it, pf), 0};
+						return compile_continue_statement(ctx, it, pf);
 					case reserved_token::kw_return:
-						return {compile_return_statement(ctx, it, pf), 0};
+						return compile_return_statement(ctx, it, pf);
 					default:
 						break;
 				}
 			}
 			
 			if (is_typename(ctx, it)) {
-				return compile_var_statement(ctx, it);
+				if (in_switch) {
+					throw syntax_error("Declarations in switch block are not allowed", it->get_line_number(), it->get_char_index());
+				} else {
+					return compile_var_statement(ctx, it);
+				}
 			}
 			
 			if (it->has_value(reserved_token::open_curly)) {
-				return {compile_block_statement(ctx, it, pf), 0};
+				return compile_block_statement(ctx, it, pf);
 			}
 			
-			return {compile_simple_statement(ctx, it), 0};
+			return compile_simple_statement(ctx, it);
 		}
 		
 		statement_ptr compile_simple_statement(compiler_context& ctx, tokens_iterator& it) {
@@ -227,7 +231,7 @@ namespace stork {
 				++it;
 				stmts.emplace_back(compile_block_statement(ctx, it, pf));
 			} else {
-				stmts.emplace_back(create_block_statement({}, 0));
+				stmts.emplace_back(create_block_statement({}));
 			}
 			
 			return create_if_statement(std::move(decls), std::move(exprs), std::move(stmts));
@@ -268,14 +272,7 @@ namespace stork {
 					dflt = stmts.size();
 					parse_token_value(ctx, it, reserved_token::colon);
 				} else {
-					size_t line_number = it->get_line_number();
-					size_t char_index = it->get_char_index();
-					
-					std::pair<statement_ptr, int> stmt = compile_statement(ctx, it, pf);
-					if (stmt.second != 0) {
-						throw syntax_error("Declarations in switch block are not allowed", line_number, char_index);
-					}
-					stmts.emplace_back(std::move(stmt.first));
+					stmts.emplace_back(compile_statement(ctx, it, pf, true));
 				}
 			}
 			
@@ -288,11 +285,10 @@ namespace stork {
 			return create_switch_statement(std::move(decls), std::move(expr), std::move(stmts), std::move(cases), dflt);
 		}
 	
-		std::pair<statement_ptr, int>  compile_var_statement(compiler_context& ctx, tokens_iterator& it) {
+		statement_ptr  compile_var_statement(compiler_context& ctx, tokens_iterator& it) {
 			std::vector<expression<lvalue>::ptr> decls = compile_variable_declaration(ctx, it);
 			parse_token_value(ctx, it, reserved_token::semicolon);
-			size_t decls_size = decls.size();
-			return std::make_pair(create_local_declaration_statement(std::move(decls)), decls_size);
+			return create_local_declaration_statement(std::move(decls));
 		}
 		
 		statement_ptr compile_break_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
@@ -341,32 +337,27 @@ namespace stork {
 		}
 		
 		
-		std::pair<std::vector<statement_ptr>, size_t> compile_block_contents(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
-			size_t block_declarations = 0;
-			std::vector<statement_ptr> statements;
+		std::vector<statement_ptr> compile_block_contents(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+			std::vector<statement_ptr> ret;
 			
 			if (it->has_value(reserved_token::open_curly)) {
 				parse_token_value(ctx, it, reserved_token::open_curly);
 				
 				while (!it->has_value(reserved_token::close_curly)) {
-					std::pair<statement_ptr, int> statement = compile_statement(ctx, it, pf);
-					block_declarations += statement.second;
-					statements.push_back(std::move(statement.first));
+					ret.push_back(compile_statement(ctx, it, pf, false));
 				}
 				
 				parse_token_value(ctx, it, reserved_token::close_curly);
 			} else {
-				std::pair<statement_ptr, int> statement = compile_statement(ctx, it, pf);
-				block_declarations += statement.second;
-				statements.push_back(std::move(statement.first));
+				ret.push_back(compile_statement(ctx, it, pf, false));
 			}
 			
-			return std::make_pair(std::move(statements), block_declarations);
+			return ret;
 		}
 		
 		block_statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
-			std::pair<std::vector<statement_ptr>, size_t> block = compile_block_contents(ctx, it, pf);
-			return create_block_statement(std::move(block.first), block.second);
+			std::vector<statement_ptr> block = compile_block_contents(ctx, it, pf);
+			return create_block_statement(std::move(block));
 		}
 	}
 
@@ -452,9 +443,9 @@ namespace stork {
 	}
 	
 	shared_block_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id) {
-		std::pair<std::vector<statement_ptr>, size_t> block = compile_block_contents(ctx, it, possible_flow::in_function(return_type_id));
-		block.first.emplace_back(create_return_statement(build_default_initialization(return_type_id)));
-		return create_shared_block_statement(std::move(block.first), block.second);
+		std::vector<statement_ptr> block = compile_block_contents(ctx, it, possible_flow::in_function(return_type_id));
+		block.emplace_back(create_return_statement(build_default_initialization(return_type_id)));
+		return create_shared_block_statement(std::move(block));
 	}
 	
 	runtime_context compile(compiler_context& ctx, tokens_iterator& it) {
