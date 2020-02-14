@@ -455,15 +455,22 @@ namespace stork {
 			}
 			
 			R evaluate(runtime_context& context) const override {
-				for (size_t i = _exprs.size(); i; --i) {
-					context.push(_exprs[i-1]->evaluate(context).value);
+				std::vector<variable_ptr> params;
+				params.reserve(_exprs.size());
+				
+				for (size_t i = 0; i < _exprs.size(); ++i) {
+					params.push_back(_exprs[i]->evaluate(context).value);
+				}
+				
+				lfunction f = _fexpr->evaluate(context);
+
+				for (size_t i = params.size(); i > 0; --i) {
+					context.push(params[i-1]);
 				}
 
-				lfunction f = _fexpr->evaluate(context);
-				
 				context.call();
 				f->value(context);
-				
+			
 				if constexpr (std::is_same<R, void>::value) {
 					context.end_function(_exprs.size());
 				} else {
