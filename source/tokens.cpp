@@ -71,6 +71,8 @@ namespace stork {
 		};
 		
 		const lookup<std::string_view, reserved_token> keyword_token_map {
+			{"sizeof", reserved_token::kw_sizeof},
+		
 			{"if", reserved_token::kw_if},
 			{"else", reserved_token::kw_else},
 			{"elif", reserved_token::kw_elif},

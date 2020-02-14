@@ -69,6 +69,8 @@ namespace stork {
 		open_square,
 		close_square,
 		
+		kw_sizeof,
+		
 		kw_if,
 		kw_else,
 		kw_elif,

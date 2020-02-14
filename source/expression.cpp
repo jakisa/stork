@@ -205,6 +205,10 @@ namespace stork {
 		UNARY_EXPRESSION(bnot, return ~int(t1));
 		
 		UNARY_EXPRESSION(lnot, return !t1);
+		
+		UNARY_EXPRESSION(size,
+			return safe_value(t1).size();
+		);
 
 #undef UNARY_EXPRESSION
 
@@ -540,6 +544,20 @@ namespace stork {
 			)\
 		);
 
+#define CHECK_SIZE_OPERATION()\
+		case node_operation::size:\
+			if (std::holds_alternative<array_type>(*(np->get_children()[0]->get_type_id()))) {\
+				return expression_ptr(\
+					std::make_unique<size_expression<R, larray> > (\
+						expression_builder<larray>::build_expression(np->get_children()[0], context)\
+					)\
+				);\
+			} else {\
+				return expression_ptr(\
+					std::make_unique<constant_expression<R> >(1)\
+				);\
+			}
+
 #define CHECK_BINARY_OPERATION(name, T1, T2)\
 	case node_operation::name:\
 		return expression_ptr(\
@@ -648,6 +666,7 @@ namespace stork {
 					CHECK_UNARY_OPERATION(negative, number);
 					CHECK_UNARY_OPERATION(bnot, number);
 					CHECK_UNARY_OPERATION(lnot, number);
+					CHECK_SIZE_OPERATION();
 					CHECK_BINARY_OPERATION(add, number, number);
 					CHECK_BINARY_OPERATION(sub, number, number);
 					CHECK_BINARY_OPERATION(mul, number, number);
@@ -837,6 +856,7 @@ namespace stork {
 #undef CHECK_COMPARISON_OPERATION
 #undef CHECK_TERNARY_OPERATION
 #undef CHECK_BINARY_OPERATION
+#undef CHECK_SIZE_OPERATION
 #undef CHECK_UNARY_OPERATION
 #undef RETURN_EXPRESSION_OF_TYPE
 

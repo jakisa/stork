@@ -26,6 +26,12 @@ public function number fib(number idx) {
 	return fib1;
 }
 
+public function number test_size() {
+	number[] var;
+	var[700] = 42;
+	return sizeof(var);
+}
+
 )STORK_CODE";
 
 int main() {
@@ -55,6 +61,10 @@ int main() {
 		rctx.call();
 		rctx.call_public_function("fib");
 		variable_ptr ret = rctx.end_function(0);
+		
+		rctx.call();
+		rctx.call_public_function("test_size");
+		ret = rctx.end_function(0);
 		
 		std::cout << ret->to_string() << std::endl;
 	} catch (const error& err) {

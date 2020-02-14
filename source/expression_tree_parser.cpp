@@ -55,6 +55,7 @@ namespace stork {
 					case node_operation::negative:
 					case node_operation::bnot:
 					case node_operation::lnot:
+					case node_operation::size:
 						precedence = operator_precedence::prefix;
 						break;
 					case node_operation::mul:
@@ -137,6 +138,7 @@ namespace stork {
 					case node_operation::negative:
 					case node_operation::bnot:
 					case node_operation::lnot:
+					case node_operation::size:
 					case node_operation::call: //at least one
 						number_of_operands = 1;
 						break;
@@ -238,6 +240,8 @@ namespace stork {
 					return operator_info(node_operation::call, line_number, char_index);
 				case reserved_token::open_square:
 					return operator_info(node_operation::index, line_number, char_index);
+				case reserved_token::kw_sizeof:
+					return operator_info(node_operation::size, line_number, char_index);
 				default:
 					throw unexpected_syntax_error(std::to_string(token), line_number, char_index);
 			}

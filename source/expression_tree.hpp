@@ -18,6 +18,7 @@ namespace stork {
 		negative,
 		bnot,
 		lnot,
+		size,
 		
 		add,
 		sub,

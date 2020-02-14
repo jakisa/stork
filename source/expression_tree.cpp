@@ -72,6 +72,10 @@ namespace stork {
 						_lvalue = false;
 						_children[0]->check_conversion(number_handle, false);
 						break;
+					case node_operation::size:
+						_type_id = number_handle;
+						_lvalue = false;
+						break;
 					case node_operation::add:
 					case node_operation::sub:
 					case node_operation::mul:
