@@ -398,7 +398,7 @@ namespace stork {
 			) :
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2)),
-				_expr3(std::move(expr2))
+				_expr3(std::move(expr3))
 			{
 			}
 			
