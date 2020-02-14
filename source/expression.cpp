@@ -465,7 +465,7 @@ namespace stork {
 				lfunction f = _fexpr->evaluate(context);
 
 				for (size_t i = params.size(); i > 0; --i) {
-					context.push(params[i-1]);
+					context.push(std::move(params[i-1]));
 				}
 
 				context.call();
