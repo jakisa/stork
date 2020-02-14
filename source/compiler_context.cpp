@@ -69,13 +69,13 @@ namespace stork{
 		return std::move(_parent);
 	}
 
-	function_param_lookup::function_param_lookup() :
+	param_lookup::param_lookup() :
 		local_variable_lookup(nullptr),
 		_next_param_index(-1)
 	{
 	}
 	
-	const identifier_info* function_param_lookup::create_param(std::string name, type_handle type_id) {
+	const identifier_info* param_lookup::create_param(std::string name, type_handle type_id) {
 		return insert_identifier(std::move(name), type_id, _next_param_index--, identifier_scope::local_variable);
 	}
 	
@@ -125,7 +125,7 @@ namespace stork{
 	}
 	
 	void compiler_context::enter_function() {
-		std::unique_ptr<function_param_lookup> params = std::make_unique<function_param_lookup>();
+		std::unique_ptr<param_lookup> params = std::make_unique<param_lookup>();
 		_params = params.get();
 		_locals = std::move(params);
 	}

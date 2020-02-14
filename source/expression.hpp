@@ -24,7 +24,6 @@ namespace stork {
 		virtual ~expression() = default;
 	};
 	
-	expression<void>::ptr build_empty_expression();
 	expression<void>::ptr build_void_expression(compiler_context& context, tokens_iterator& it);
 	expression<number>::ptr build_number_expression(compiler_context& context, tokens_iterator& it);
 	expression<lvalue>::ptr build_initialization_expression(

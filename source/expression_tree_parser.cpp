@@ -448,8 +448,10 @@ namespace stork {
 	node_ptr parse_expression_tree(
 		compiler_context& context, tokens_iterator& it, type_handle type_id, bool allow_comma
 	) {
-		node_ptr ret = parse_expression_tree_impl(context, it, allow_comma, false);
-		ret->check_conversion(type_id, false);
+		node_ptr ret = parse_expression_tree_impl(context, it, allow_comma, type_id == type_registry::get_void_handle());
+		if (ret) {
+			ret->check_conversion(type_id, false);
+		}
 		return ret;
 	}
 }

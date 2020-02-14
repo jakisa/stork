@@ -862,6 +862,11 @@ namespace stork {
 			}, *type_id);
 		}
 		
+        class empty_expression: public expression<void> {
+            void evaluate(runtime_context&) const override {
+            }
+        };
+        
 		template<typename R>
 		typename expression<R>::ptr build_expression(type_handle type_id, compiler_context& context, tokens_iterator& it, bool allow_comma) {
 			size_t line_number = it->get_line_number();
@@ -869,6 +874,12 @@ namespace stork {
 			
 			try {
 				node_ptr np = parse_expression_tree(context, it, type_id, allow_comma);
+				
+				if constexpr(std::is_same<void, R>::value) {
+					if (!np) {
+						return std::make_unique<empty_expression>();
+					}
+				}
 				
 				if constexpr(std::is_same<R, lvalue>::value) {
 					return build_lvalue_expression(
@@ -887,10 +898,6 @@ namespace stork {
 			}
 		}
 		
-		class empty_expression: public expression<void> {
-			void evaluate(runtime_context&) const override {
-			}
-		};
 		
 		template <typename T>
 		class default_initialization: public expression<lvalue> {
@@ -899,10 +906,6 @@ namespace stork {
 				return std::make_shared<variable_impl<T> >(T{});
 			}
 		};
-	}
-
-	expression<void>::ptr build_empty_expression() {
-		return std::make_unique<empty_expression>();
 	}
 
 	expression<void>::ptr build_void_expression(compiler_context& context, tokens_iterator& it) {

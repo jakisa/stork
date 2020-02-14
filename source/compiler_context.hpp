@@ -65,11 +65,11 @@ namespace stork {
 		std::unique_ptr<local_variable_lookup> detach_parent();
 	};
 	
-	class function_param_lookup: public local_variable_lookup {
+	class param_lookup: public local_variable_lookup {
 	private:
 		int _next_param_index;
 	public:
-		function_param_lookup();
+		param_lookup();
 		
 		const identifier_info* create_param(std::string name, type_handle type_id);
 	};
@@ -83,7 +83,7 @@ namespace stork {
 	private:
 		function_lookup _functions;
 		global_variable_lookup _globals;
-		function_param_lookup* _params;
+		param_lookup* _params;
 		std::unique_ptr<local_variable_lookup> _locals;
 		type_registry _types;
 	public:
