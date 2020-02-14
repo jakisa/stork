@@ -262,7 +262,7 @@ namespace stork {
 				if (it->has_value(reserved_token::kw_case)) {
 					++it;
 					if (!it->is_number()) {
-						unexpected_syntax(it);
+						throw unexpected_syntax(it);
 					}
 					cases.emplace(it->get_number(), stmts.size());
 					++it;
@@ -293,30 +293,34 @@ namespace stork {
 		
 		statement_ptr compile_break_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
 			if (pf.break_level == 0) {
-				unexpected_syntax(it);
+				throw unexpected_syntax(it);
 			}
 			
 			parse_token_value(ctx, it, reserved_token::kw_break);
 			
-			if (!it->is_number()) {
-				unexpected_syntax(it);
+			double break_level;
+			
+			if (it->is_number()) {
+				break_level = it->get_number();
+			
+				if (break_level < 1 || break_level != int(break_level) || break_level > pf.break_level) {
+					throw syntax_error("Invalid break value", it->get_line_number(), it->get_char_index());
+				}
+				
+				++it;
+			} else {
+				break_level = 1;
 			}
 			
-			double n = it->get_number();
 			
-			if (n < 1 || n != int(n)) {
-				throw syntax_error("Invalid break value", it->get_line_number(), it->get_char_index());
-			}
-			
-			++it;
 			parse_token_value(ctx, it, reserved_token::semicolon);
 			
-			return create_break_statement(int(n));
+			return create_break_statement(int(break_level));
 		}
 		
 		statement_ptr compile_continue_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf){
 			if (!pf.can_continue) {
-				unexpected_syntax(it);
+				throw unexpected_syntax(it);
 			}
 			parse_token_value(ctx, it, reserved_token::kw_continue);
 			parse_token_value(ctx, it, reserved_token::semicolon);
