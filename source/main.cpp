@@ -10,6 +10,10 @@
 
 const char* stork_code = R"STORK_CODE(
 
+public function number fib_recursive(number idx) {
+	return idx <= 1 ? idx : fib_recursive(idx-2) + fib_recursive(idx-1);
+}
+
 public function number fib(number idx) {
 	if (idx == 0) {
 		return 0;
@@ -56,19 +60,27 @@ int main() {
 	try {
 	
 		runtime_context rctx = compile(ctx, it);
-	
-		rctx.push(std::make_unique<variable_impl<number> >(20));
-		rctx.call();
-		rctx.call_public_function("fib");
-		variable_ptr ret = rctx.end_function(0);
 		
-		std::cout << ret->to_string() << std::endl;
+		std::cout <<
+			rctx.call(
+				rctx.get_public_function("fib"),
+				{std::make_unique<variable_impl<number> >(20)}
+			)->to_string()
+		<< std::endl;
 		
-		rctx.call();
-		rctx.call_public_function("test_size");
-		ret = rctx.end_function(0);
+		std::cout <<
+			rctx.call(
+				rctx.get_public_function("fib_recursive"),
+				{std::make_unique<variable_impl<number> >(20)}
+			)->to_string()
+		<< std::endl;
 		
-		std::cout << ret->to_string() << std::endl;
+		std::cout <<
+			rctx.call(
+				rctx.get_public_function("test_size"),
+				{}
+			)->to_string()
+		<< std::endl;
 	} catch (const error& err) {
 		code = stork_code;
 		format_error(err, get_character, std::cerr);

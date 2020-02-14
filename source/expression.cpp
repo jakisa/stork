@@ -461,27 +461,18 @@ namespace stork {
 			R evaluate(runtime_context& context) const override {
 				std::vector<variable_ptr> params;
 				params.reserve(_exprs.size());
-				
+			
 				for (size_t i = 0; i < _exprs.size(); ++i) {
 					params.push_back(_exprs[i]->evaluate(context));
 				}
 				
 				function f = _fexpr->evaluate(context);
-
-				for (size_t i = params.size(); i > 0; --i) {
-					context.push(std::move(params[i-1]));
-				}
-
-				context.call();
-				f(context);
-			
+				
 				if constexpr (std::is_same<R, void>::value) {
-					context.end_function(_exprs.size());
+					context.call(f, std::move(params));
 				} else {
 					return convert<R>(
-						context.end_function(
-							_exprs.size()
-						)->template static_pointer_downcast<T>()
+						context.call(f, std::move(params))->template static_pointer_downcast<T>()
 					);
 				}
 			}
@@ -528,11 +519,20 @@ namespace stork {
 			case identifier_scope::local_variable:\
 				return std::make_unique<local_variable_expression<R, T1> >(info->index());\
 			case identifier_scope::function:\
-				if constexpr (std::is_same<T1, lfunction>::value) {\
-					return std::make_unique<function_expression<R> >(info->index());\
-				} else {\
-					throw expression_builder_error();\
-				}\
+				break;\
+		}\
+	}
+
+#define CHECK_FUNCTION()\
+	if (std::holds_alternative<identifier>(np->get_value())) {\
+		const identifier& id = std::get<identifier>(np->get_value());\
+		const identifier_info* info = context.find(id.name);\
+		switch (info->get_scope()) {\
+			case identifier_scope::global_variable:\
+			case identifier_scope::local_variable:\
+				break;\
+			case identifier_scope::function:\
+				return std::make_unique<function_expression<R> >(info->index());\
 		}\
 	}
 
@@ -783,6 +783,7 @@ namespace stork {
 			
 			static expression_ptr build_function_expression(const node_ptr& np, compiler_context& context) {
 				CHECK_IDENTIFIER(lfunction);
+				CHECK_FUNCTION();
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, function);
@@ -858,6 +859,8 @@ namespace stork {
 #undef CHECK_BINARY_OPERATION
 #undef CHECK_SIZE_OPERATION
 #undef CHECK_UNARY_OPERATION
+#undef CHECK_FUNCTION
+#undef CHECK_IDENTIFIER
 #undef RETURN_EXPRESSION_OF_TYPE
 
 		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context) {

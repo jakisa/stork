@@ -486,11 +486,11 @@ namespace stork {
 			}
 		}
 		
-		std::vector<lfunction> functions;
+		std::vector<function> functions;
 		functions.reserve(incomplete_functions.size());
 		
 		for (incomplete_function& f : incomplete_functions) {
-			functions.emplace_back(std::make_shared<variable_impl<function> >(f.compile(ctx)));
+			functions.emplace_back(f.compile(ctx));
 		}
 		
 		return runtime_context(std::move(initializers), std::move(functions), std::move(public_functions));

@@ -11,51 +11,44 @@
 #include "expression.hpp"
 
 namespace stork {
-	class runtime_context{
+	class runtime_context {
 	private:
-		std::vector<lfunction> _functions;
+		std::vector<function> _functions;
 		std::unordered_map<std::string, size_t> _public_functions;
 		std::vector<expression<lvalue>::ptr> _initializers;
 		std::vector<variable_ptr> _globals;
 		std::deque<variable_ptr> _stack;
-		std::stack<size_t> _retval_idx;
+		size_t _retval_idx;
 		
-		class scope_raii{
-			scope_raii(const scope_raii&) = delete;
-			void operator=(const scope_raii&) = delete;
+		class scope {
 		private:
-			runtime_context* _context;
+			runtime_context& _context;
 			size_t _stack_size;
 		public:
-			scope_raii(size_t stack_size, runtime_context* context);
-			~scope_raii();
+			scope(runtime_context& context);
+			~scope();
 		};
+		
 	public:
 		runtime_context(
 			std::vector<expression<lvalue>::ptr> initializers,
-			std::vector<lfunction> functions,
+			std::vector<function> functions,
 			std::unordered_map<std::string, size_t> public_functions
 		);
 	
 		void initialize();
-	
-		void call_public_function(const std::string& name);
-	
+
 		variable_ptr& global(int idx);
-
 		variable_ptr& retval();
-
 		variable_ptr& local(int idx);
-		
-		const lfunction& get_function(int idx) const;
-		
+
+		const function& get_function(int idx) const;
+		const function& get_public_function(const std::string& name) const;
+
+		scope enter_scope();
 		void push(variable_ptr v);
 		
-		void call();
-		
-		variable_ptr end_function(size_t params);
-
-		scope_raii enter_scope();
+		variable_ptr call(const function& f, std::vector<variable_ptr> params);
 	};
 }
 
