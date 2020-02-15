@@ -257,6 +257,7 @@ namespace stork {
 					case reserved_token::semicolon:
 					case reserved_token::close_round:
 					case reserved_token::close_square:
+					case reserved_token::close_curly:
 					case reserved_token::colon:
 						return true;
 					case reserved_token::comma:

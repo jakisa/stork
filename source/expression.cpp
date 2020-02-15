@@ -923,10 +923,30 @@ namespace stork {
 		
 		
 		template <typename T>
-		class default_initialization: public expression<lvalue> {
+		class default_initialization_expression: public expression<lvalue> {
 		public:
 			lvalue evaluate(runtime_context &context) const override {
 				return std::make_shared<variable_impl<T> >(T{});
+			}
+		};
+		
+		class array_initialization_expression: public expression<lvalue> {
+		private:
+			std::vector<expression<lvalue>::ptr> _exprs;
+		public:
+			array_initialization_expression(std::vector<expression<lvalue>::ptr> exprs) :
+				_exprs(std::move(exprs))
+			{
+			}
+			
+			lvalue evaluate(runtime_context& context) const override {
+				array arr;
+				
+				for (const expression<lvalue>::ptr& expr : _exprs) {
+					arr.push_back(expr->evaluate(context));
+				}
+				
+				return std::make_shared<variable_impl<array> >(std::move(arr));
 			}
 		};
 	}
@@ -945,7 +965,28 @@ namespace stork {
 		type_handle type_id,
 		bool allow_comma
 	) {
-		return build_expression<lvalue>(type_id, context, it, allow_comma);
+		if (it->has_value(reserved_token::open_curly)) {
+			if (!std::holds_alternative<array_type>(*type_id)) {
+				throw unexpected_error("{", it->get_line_number(), it->get_char_index());
+			}
+			++it;
+			const array_type* at = std::get_if<array_type>(type_id);
+			
+			std::vector<expression<lvalue>::ptr> exprs;
+			
+			while (!it->has_value(reserved_token::close_curly)) {
+				exprs.push_back(build_expression<lvalue>(at->inner_type_id, context, it, false));
+				if (it->has_value(reserved_token::comma)) {
+					++it;
+				} else if (!it->has_value(reserved_token::close_curly)) {
+					throw expected_syntax_error("}", it->get_line_number(), it->get_char_index());
+				}
+			}
+			++it;
+			return std::make_unique<array_initialization_expression>(std::move(exprs));
+		} else {
+			return build_expression<lvalue>(type_id, context, it, allow_comma);
+		}
 	}
 
 	expression<lvalue>::ptr build_default_initialization(type_handle type_id) {
@@ -953,18 +994,18 @@ namespace stork {
 			[&](simple_type st){
 				switch (st) {
 					case simple_type::number:
-						return expression<lvalue>::ptr(std::make_unique<default_initialization<number> >());
+						return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<number> >());
 					case simple_type::string:
-						return expression<lvalue>::ptr(std::make_unique<default_initialization<string> >());
+						return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<string> >());
 					case simple_type::nothing:
 						return expression<lvalue>::ptr(nullptr); //cannot happen
 				}
 			},
 			[&](const function_type& ft) {
-				return expression<lvalue>::ptr(std::make_unique<default_initialization<function> >());
+				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<function> >());
 			},
 			[&](const array_type& at) {
-				return expression<lvalue>::ptr(std::make_unique<default_initialization<array> >());
+				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<array> >());
 			}
 		}, *type_id);
 	}

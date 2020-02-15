@@ -86,6 +86,12 @@ public function void sort(number[]& arr) {
 	quicksort(&arr, 0, sizeof(arr), greater);
 }
 
+public function number[] test() {
+	number[] arr = {6, 2, 6, 3, 4, 5, 6, 7, 1};
+	sort(&arr);
+	return arr;
+}
+
 )STORK_CODE";
 
 int main() {
@@ -127,6 +133,13 @@ int main() {
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("test_size"),
+				{}
+			)->to_string()
+		<< std::endl;
+		
+		std::cout <<
+			rctx.call(
+				rctx.get_public_function("test"),
 				{}
 			)->to_string()
 		<< std::endl;
