@@ -25,6 +25,7 @@ namespace stork {
 	}
 	
 	variable_ptr& runtime_context::global(int idx) {
+		runtime_assertion(idx < _globals.size(), "Uninitialized global variable access");
 		return _globals[idx];
 	}
 

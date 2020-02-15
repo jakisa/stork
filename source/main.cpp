@@ -31,6 +31,13 @@ public function number fib(number idx) {
 	return fib1;
 }
 
+function number initJ() {
+	return 10;
+}
+
+number I = 10;
+number J = initJ();
+
 public function number test_size() {
 	number[] var;
 	
@@ -146,6 +153,8 @@ int main() {
 	} catch (const error& err) {
 		code = stork_code;
 		format_error(err, get_character, std::cerr);
+	} catch (const runtime_error& err) {
+		std::cerr << err.what() << std::endl;
 	}
 	
 	return 0;
