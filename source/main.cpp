@@ -65,20 +65,16 @@ function number greater(number x, number y) {
 }
 
 function void quicksort(number[]& arr, number begin, number end, number(number, number) less) {
-	if (end - begin < 2) {
+	if (end - begin < 2)
 		return;
-	}
 	
 	number pivot = arr[end-1];
 
 	number i = begin;
 	
-	for (number j = begin; j < end-1; ++j) {
-		if (less(arr[j], pivot)) {
-			swap(&arr[i], &arr[j]);
-			++i;
-		}
-	}
+	for (number j = begin; j < end-1; ++j)
+		if (less(arr[j], pivot))
+			swap(&arr[i++], &arr[j]);
 	
 	swap (&arr[i], &arr[end-1]);
 
