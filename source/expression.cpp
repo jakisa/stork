@@ -123,31 +123,18 @@ namespace stork {
 			}
 		};
 		
-		template<typename R>
+		template<typename R, typename T>
 		class constant_expression: public expression<R> {
 		private:
-			R _c;
+			T _c;
 		public:
-			template <typename T>
 			constant_expression(T c) :
-				_c(convert<R>(std::move(c)))
+				_c(std::move(c))
 			{
 			}
 			
 			R evaluate(runtime_context& context) const override {
-				return _c;
-			}
-		};
-		
-		template<>
-		class constant_expression<void>: public expression<void> {
-		public:
-			template <typename T>
-			constant_expression(T)
-			{
-			}
-			
-			void evaluate(runtime_context& context) const override {
+				return convert<R>(_c);
 			}
 		};
 
@@ -634,7 +621,7 @@ namespace stork {
 			
 			static expression_ptr build_number_expression(const node_ptr& np, compiler_context& context) {
 				if (std::holds_alternative<double>(np->get_value())) {
-					return std::make_unique<constant_expression<R>>(
+					return std::make_unique<constant_expression<R, number>>(
 						std::get<double>(np->get_value())
 					);
 				}
@@ -703,7 +690,7 @@ namespace stork {
 			
 			static expression_ptr build_string_expression(const node_ptr& np, compiler_context& context) {
 				if (std::holds_alternative<std::string>(np->get_value())) {
-					return std::make_unique<constant_expression<R>>(
+					return std::make_unique<constant_expression<R, string>>(
 						std::make_shared<std::string>(std::get<std::string>(np->get_value()))
 					);
 				}
