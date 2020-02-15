@@ -462,11 +462,9 @@ namespace stork {
 					context.end_function(_exprs.size());
 				} else {
 					return convert<R>(
-						std::static_pointer_cast<variable_impl<T> >(
-							context.end_function(
-								_exprs.size()
-							)
-						)
+						context.end_function(
+							_exprs.size()
+						)->template static_pointer_downcast<T>()
 					);
 				}
 			}
@@ -656,7 +654,8 @@ namespace stork {
 					CHECK_BINARY_OPERATION(land, number, number);
 					CHECK_BINARY_OPERATION(lor, number, number);
 					CHECK_TERNARY_OPERATION(ternary, number, number, number);
-					CHECK_CALL_OPERATION(number);
+					CHECK_INDEX_OPERATION(lnumber);
+					CHECK_CALL_OPERATION(lnumber);
 					default:
 						throw expression_builder_error();
 				}
@@ -701,7 +700,8 @@ namespace stork {
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
 					CHECK_TERNARY_OPERATION(ternary, number, string, string);
-					CHECK_CALL_OPERATION(string);
+					CHECK_INDEX_OPERATION(lstring);
+					CHECK_CALL_OPERATION(lstring);
 					default:
 						throw expression_builder_error();
 				}
