@@ -86,6 +86,26 @@ namespace stork {
 		param_lookup* _params;
 		std::unique_ptr<local_variable_lookup> _locals;
 		type_registry _types;
+		
+		class scope_raii {
+		private:
+			compiler_context& _context;
+		public:
+			scope_raii(compiler_context& context);
+			~scope_raii();
+		};
+		
+		class function_raii {
+		private:
+			compiler_context& _context;
+		public:
+			function_raii(compiler_context& context);
+			~function_raii();
+		};
+		
+		void enter_function();
+		void enter_scope();
+		void leave_scope();
 	public:
 		compiler_context();
 		
@@ -101,11 +121,8 @@ namespace stork {
 		
 		bool can_declare(const std::string& name) const;
 		
-		void enter_scope();
-		
-		void enter_function();
-		
-		bool leave_scope();
+		scope_raii scope();
+		function_raii function();
 	};
 }
 

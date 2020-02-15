@@ -13,23 +13,29 @@ namespace stork {
 		ft.return_type_id = parse_type(ctx, it);
 		
 		_name = parse_declaration_name(ctx, it);
-		parse_token_value(ctx, it, reserved_token::open_round);
 		
-		while(!it->has_value(reserved_token::close_round)) {
-			if (!_params.empty()) {
-				parse_token_value(ctx, it, reserved_token::comma);
-			}
+		{
+			auto _ = ctx.function();
 			
-			type_handle t = parse_type(ctx, it);
-			bool byref = false;
-			if (it->has_value(reserved_token::bitwise_and)) {
-				byref = true;
-				++it;
+			parse_token_value(ctx, it, reserved_token::open_round);
+			
+			while(!it->has_value(reserved_token::close_round)) {
+				if (!_params.empty()) {
+					parse_token_value(ctx, it, reserved_token::comma);
+				}
+				
+				type_handle t = parse_type(ctx, it);
+				bool byref = false;
+				if (it->has_value(reserved_token::bitwise_and)) {
+					byref = true;
+					++it;
+				}
+				ft.param_type_id.push_back({t, byref});
+				_params.push_back(parse_declaration_name(ctx, it));
 			}
-			ft.param_type_id.push_back({t, byref});
-			_params.push_back(parse_declaration_name(ctx, it));
+			++it;
+			
 		}
-		++it;
 		
 		_tokens.push_back(*it);
 		
@@ -71,7 +77,7 @@ namespace stork {
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {
-		ctx.enter_function();
+		auto _ = ctx.function();
 		
 		const function_type* ft = std::get_if<function_type>(_ft);
 		
@@ -82,8 +88,6 @@ namespace stork {
 		tokens_iterator it(_tokens);
 		
 		shared_block_statement_ptr stmt = compile_function_block(ctx, it, ft->return_type_id);
-		
-		ctx.leave_scope();
 		
 		return [stmt=std::move(stmt)] (runtime_context& ctx) {
 			stmt->execute(ctx);

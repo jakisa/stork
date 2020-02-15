@@ -33,6 +33,7 @@ namespace stork {
 					switch (t) {
 						case reserved_token::kw_number:
 						case reserved_token::kw_string:
+						case reserved_token::kw_void:
 							return true;
 						default:
 							return false;
@@ -50,6 +51,10 @@ namespace stork {
 		
 		std::vector<expression<lvalue>::ptr> compile_variable_declaration(compiler_context& ctx, tokens_iterator& it) {
 			type_handle type_id = parse_type(ctx, it);
+		
+			if (type_id == type_registry::get_void_handle()) {
+				throw syntax_error("Cannot declare void variable", it->get_line_number(), it->get_char_index());
+			}
 			
 			std::vector<expression<lvalue>::ptr> ret;
 			
@@ -145,6 +150,8 @@ namespace stork {
 		}
 		
 		statement_ptr compile_for_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+			auto _ = ctx.scope();
+		
 			parse_token_value(ctx, it, reserved_token::kw_for);
 			parse_token_value(ctx, it, reserved_token::open_round);
 			
@@ -201,6 +208,7 @@ namespace stork {
 		}
 		
 		statement_ptr compile_if_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+			auto _ = ctx.scope();
 			parse_token_value(ctx, it, reserved_token::kw_if);
 			
 			parse_token_value(ctx, it, reserved_token::open_round);
@@ -238,6 +246,7 @@ namespace stork {
 		}
 		
 		 statement_ptr compile_switch_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+		 	auto _ = ctx.scope();
 			parse_token_value(ctx, it, reserved_token::kw_switch);
 			
 			parse_token_value(ctx, it, reserved_token::open_round);
@@ -285,7 +294,7 @@ namespace stork {
 			return create_switch_statement(std::move(decls), std::move(expr), std::move(stmts), std::move(cases), dflt);
 		}
 	
-		statement_ptr  compile_var_statement(compiler_context& ctx, tokens_iterator& it) {
+		statement_ptr compile_var_statement(compiler_context& ctx, tokens_iterator& it) {
 			std::vector<expression<lvalue>::ptr> decls = compile_variable_declaration(ctx, it);
 			parse_token_value(ctx, it, reserved_token::semicolon);
 			return create_local_declaration_statement(std::move(decls));
@@ -360,6 +369,7 @@ namespace stork {
 		}
 		
 		block_statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+			auto _ = ctx.scope();
 			std::vector<statement_ptr> block = compile_block_contents(ctx, it, pf);
 			return create_block_statement(std::move(block));
 		}
@@ -439,7 +449,7 @@ namespace stork {
 					}
 					break;
 				default:
-					break;
+					return t;
 			}
 		}
 		
@@ -448,7 +458,9 @@ namespace stork {
 	
 	shared_block_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id) {
 		std::vector<statement_ptr> block = compile_block_contents(ctx, it, possible_flow::in_function(return_type_id));
-		block.emplace_back(create_return_statement(build_default_initialization(return_type_id)));
+		if (return_type_id != type_registry::get_void_handle()) {
+			block.emplace_back(create_return_statement(build_default_initialization(return_type_id)));
+		}
 		return create_shared_block_statement(std::move(block));
 	}
 	

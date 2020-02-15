@@ -7,6 +7,7 @@
 #include "runtime_context.hpp"
 #include "push_back_stream.hpp"
 #include "compiler.hpp"
+#include <stdlib.h>
 
 const char* stork_code = R"STORK_CODE(
 
@@ -32,8 +33,54 @@ public function number fib(number idx) {
 
 public function number test_size() {
 	number[] var;
-	var[700] = 42;
+	
+	for (number i = 0; i < 10; ++i) {
+		for (number j = 0; j < 10; ++j) {
+			var[sizeof(var)] = 1;
+		}
+	}
+
 	return sizeof(var);
+}
+
+function void swap(number& x, number& y) {
+	number tmp = x;
+	x = y;
+	y = tmp;
+}
+
+function number less(number x, number y) {
+	return x < y;
+}
+
+function number greater(number x, number y) {
+	return x > y;
+}
+
+function void quicksort(number[]& arr, number begin, number end, number(number, number) less) {
+	if (end - begin < 2) {
+		return;
+	}
+	
+	number pivot = arr[end-1];
+
+	number i = begin;
+	
+	for (number j = begin; j < end-1; ++j) {
+		if (less(arr[j], pivot)) {
+			swap(&arr[i], &arr[j]);
+			++i;
+		}
+	}
+	
+	swap (&arr[i], &arr[end-1]);
+
+	quicksort(&arr, begin, i, less);
+	quicksort(&arr, i+1, end, less);
+}
+
+public function void sort(number[]& arr) {
+	quicksort(&arr, 0, sizeof(arr), greater);
 }
 
 )STORK_CODE";
@@ -58,29 +105,44 @@ int main() {
 	tokens_iterator it(stream);
 	
 	try {
-	
 		runtime_context rctx = compile(ctx, it);
-		
+
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("fib"),
-				{std::make_unique<variable_impl<number> >(20)}
+				{std::make_shared<variable_impl<number> >(20)}
 			)->to_string()
 		<< std::endl;
 		
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("fib_recursive"),
-				{std::make_unique<variable_impl<number> >(20)}
+				{std::make_shared<variable_impl<number> >(20)}
 			)->to_string()
 		<< std::endl;
-		
+
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("test_size"),
 				{}
 			)->to_string()
 		<< std::endl;
+
+		larray arr = std::make_shared<variable_impl<array> >(array());
+		srand((unsigned int)time(0));
+		for (int i = 0; i < 1000; ++i) {
+			arr->value.push_back(std::make_shared<variable_impl<number> >(rand() % 100));
+		}
+		
+		rctx.call(
+			rctx.get_public_function("sort"),
+			{arr}
+		);
+		
+		std::cout << std::is_sorted(arr->value.begin(), arr->value.end(), [](variable_ptr l, variable_ptr r){
+			return l->static_pointer_downcast<lnumber>()->value > r->static_pointer_downcast<lnumber>()->value;
+		})  << std::endl;
+
 	} catch (const error& err) {
 		code = stork_code;
 		format_error(err, get_character, std::cerr);

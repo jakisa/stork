@@ -130,21 +130,43 @@ namespace stork{
 		_locals = std::move(params);
 	}
 	
-	bool compiler_context::leave_scope() {
-		if (!_locals) {
-			return false;
-		}
-		
+	void compiler_context::leave_scope() {
 		if (_params == _locals.get()) {
 			_params = nullptr;
 		}
 		
 		_locals = _locals->detach_parent();
-		
-		return true;
 	}
 	
 	bool compiler_context::can_declare(const std::string& name) const {
-		return _locals ? _locals->can_declare(name) : _globals.can_declare(name);
+		return _locals ? _locals->can_declare(name) : (_globals.can_declare(name) && _functions.can_declare(name));
+	}
+	
+	compiler_context::scope_raii compiler_context::scope() {
+		return scope_raii(*this);
+	}
+	
+	compiler_context::function_raii compiler_context::function() {
+		return function_raii(*this);
+	}
+	
+	compiler_context::scope_raii::scope_raii(compiler_context& context):
+		_context(context)
+	{
+		_context.enter_scope();
+	}
+	
+	compiler_context::scope_raii::~scope_raii() {
+		_context.leave_scope();
+	}
+	
+	compiler_context::function_raii::function_raii(compiler_context& context):
+		_context(context)
+	{
+		_context.enter_function();
+	}
+	
+	compiler_context::function_raii::~function_raii() {
+		_context.leave_scope();
 	}
 }
