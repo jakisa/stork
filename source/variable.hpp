@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <deque>
+#include <vector>
 #include <functional>
 #include <string>
 
@@ -21,12 +22,14 @@ namespace stork {
 	using string = std::shared_ptr<std::string>;
 	using array = std::deque<variable_ptr>;
 	using function = std::function<void(runtime_context&)>;
+	using tuple = std::vector<variable_ptr>;
 	
 	using lvalue = variable_ptr;
-	using lnumber = std::shared_ptr<variable_impl<number>>;
-	using lstring = std::shared_ptr<variable_impl<string>>;
-	using larray = std::shared_ptr<variable_impl<array>>;
-	using lfunction = std::shared_ptr<variable_impl<function>>;
+	using lnumber = std::shared_ptr<variable_impl<number> >;
+	using lstring = std::shared_ptr<variable_impl<string> >;
+	using larray = std::shared_ptr<variable_impl<array> >;
+	using lfunction = std::shared_ptr<variable_impl<function> >;
+	using ltuple = std::shared_ptr<variable_impl<tuple> >;
 	
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
@@ -67,7 +70,8 @@ namespace stork {
 	string clone_variable_value(const string& value);
 	function clone_variable_value(const function& value);
 	array clone_variable_value(const array& value);
-	
+	tuple clone_variable_value(const tuple& value);
+
 	template <class T>
 	T clone_variable_value(const std::shared_ptr<variable_impl<T> >& v) {
 		return clone_variable_value(v->value);

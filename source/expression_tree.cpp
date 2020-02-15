@@ -155,9 +155,21 @@ namespace stork {
 						if (!_children[0]->is_lvalue()) {
 							throw semantic_error("Only lvalues are indexable", _line_number, _char_index);
 						}
+                        _lvalue = true;
 						if (const array_type* at = std::get_if<array_type>(_children[0]->get_type_id())) {
 							_type_id = at->inner_type_id;
-							_lvalue = true;
+						} else if (const tuple_type* tt = std::get_if<tuple_type>(_children[0]->get_type_id())) {
+							if (_children[1]->is_number()) {
+								double idx = _children[1]->get_number();
+								if (size_t(idx) == idx && idx >= 0 && idx < tt->inner_type_id.size()) {
+									_type_id = tt->inner_type_id[size_t(idx)];
+								
+                                } else {
+									throw semantic_error("Invalid tuple index " + std::to_string(idx) , _line_number, _char_index);
+								}
+							} else {
+								throw semantic_error("Invalid tuple index", _line_number, _char_index);
+							}
 						} else {
 							throw semantic_error(to_string(_children[0]->_type_id) + " is not indexable",
 							                     _line_number, _char_index);

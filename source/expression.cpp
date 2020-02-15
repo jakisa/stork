@@ -418,10 +418,12 @@ namespace stork {
 		private:
 			expression<larray>::ptr _expr1;
 			expression<number>::ptr _expr2;
+			expression<lvalue>::ptr _init;
 		public:
-			index_expression(expression<larray>::ptr expr1, expression<number>::ptr expr2):
+			index_expression(expression<larray>::ptr expr1, expression<number>::ptr expr2, expression<lvalue>::ptr init):
 				_expr1(std::move(expr1)),
-				_expr2(std::move(expr2))
+				_expr2(std::move(expr2)),
+				_init(std::move(init))
 			{
 			}
 		
@@ -432,9 +434,7 @@ namespace stork {
 				runtime_assertion(idx >= 0, "Negative index is invalid");
 				
 				while (idx >= arr->value.size()) {
-					using variable_type = typename T::element_type;
-					using value_type = typename variable_type::value_type;
-					arr->value.push_back(std::make_unique<variable_type>(value_type{}));
+					arr->value.push_back(_init->evaluate(context));
 				}
 
 				return convert<R>(
@@ -442,6 +442,30 @@ namespace stork {
 				);
 			}
 		};
+		
+		
+		template<typename R, typename T>
+		class member_expression: public expression<R>{
+		private:
+			expression<ltuple>::ptr _expr;
+			size_t _idx;
+		public:
+			member_expression(expression<ltuple>::ptr expr, size_t idx):
+				_expr(std::move(expr)),
+				_idx(idx)
+			{
+			}
+		
+			R evaluate(runtime_context& context) const override {
+				ltuple tup = _expr->evaluate(context);
+				
+				return convert<R>(
+					tup->value[_idx]->template static_pointer_downcast<T>()
+				);
+			}
+			
+		};
+		
 		
 		template<typename R, typename T>
 		class call_expression: public expression<R>{
@@ -578,34 +602,48 @@ namespace stork {
 		);
 
 #define CHECK_COMPARISON_OPERATION(name)\
-	case node_operation::name:\
-		if (\
-			np->get_children()[0]->get_type_id() == type_registry::get_number_handle() &&\
-			np->get_children()[1]->get_type_id() == type_registry::get_number_handle()\
-		) {\
-			return expression_ptr(\
-				std::make_unique<name##_expression<R, number, number> > (\
-					expression_builder<number>::build_expression(np->get_children()[0], context),\
-					expression_builder<number>::build_expression(np->get_children()[1], context)\
-				)\
-			);\
-		} else {\
-			return expression_ptr(\
-				std::make_unique<name##_expression<R, string, string> > (\
-					expression_builder<string>::build_expression(np->get_children()[0], context),\
-					expression_builder<string>::build_expression(np->get_children()[1], context)\
-				)\
-			);\
-		}
+		case node_operation::name:\
+			if (\
+				np->get_children()[0]->get_type_id() == type_registry::get_number_handle() &&\
+				np->get_children()[1]->get_type_id() == type_registry::get_number_handle()\
+			) {\
+				return expression_ptr(\
+					std::make_unique<name##_expression<R, number, number> > (\
+						expression_builder<number>::build_expression(np->get_children()[0], context),\
+						expression_builder<number>::build_expression(np->get_children()[1], context)\
+					)\
+				);\
+			} else {\
+				return expression_ptr(\
+					std::make_unique<name##_expression<R, string, string> > (\
+						expression_builder<string>::build_expression(np->get_children()[0], context),\
+						expression_builder<string>::build_expression(np->get_children()[1], context)\
+					)\
+				);\
+			}
 
 #define CHECK_INDEX_OPERATION(T)\
-	case node_operation::index:\
-		return expression_ptr(\
-			std::make_unique<index_expression<R, T> >(\
-				expression_builder<larray>::build_expression(np->get_children()[0], context),\
-				expression_builder<number>::build_expression(np->get_children()[1], context)\
-			)\
-		);
+		case node_operation::index:\
+			{\
+				const tuple_type* tt = std::get_if<tuple_type>(np->get_children()[0]->get_type_id());\
+				if (tt) {\
+					return expression_ptr(\
+						std::make_unique<member_expression<R, T> >(\
+							expression_builder<ltuple>::build_expression(np->get_children()[0], context),\
+							size_t(np->get_children()[1]->get_number())\
+						)\
+					);\
+				} else {\
+					const array_type* at = std::get_if<array_type>(np->get_children()[0]->get_type_id());\
+					return expression_ptr(\
+						std::make_unique<index_expression<R, T> >(\
+							expression_builder<larray>::build_expression(np->get_children()[0], context),\
+							expression_builder<number>::build_expression(np->get_children()[1], context),\
+							build_default_initialization(at->inner_type_id) \
+						)\
+					);\
+				}\
+			}
 
 #define CHECK_CALL_OPERATION(T)\
 	case node_operation::call:\
@@ -807,6 +845,33 @@ namespace stork {
 						throw expression_builder_error();
 				}
 			}
+			
+			static expression_ptr build_tuple_expression(const node_ptr& np, compiler_context& context) {
+				CHECK_IDENTIFIER(ltuple);
+				
+				switch (std::get<node_operation>(np->get_value())) {
+					CHECK_BINARY_OPERATION(comma, void, tuple);
+					CHECK_TERNARY_OPERATION(ternary, number, tuple, tuple);
+					CHECK_INDEX_OPERATION(ltuple);
+					CHECK_CALL_OPERATION(ltuple);
+					default:
+						throw expression_builder_error();
+				}
+			}
+			
+			static expression_ptr build_ltuple_expression(const node_ptr& np, compiler_context& context) {
+				CHECK_IDENTIFIER(ltuple);
+				
+				switch (std::get<node_operation>(np->get_value())) {
+					CHECK_BINARY_OPERATION(assign, ltuple, tuple);
+					CHECK_BINARY_OPERATION(comma, void, ltuple);
+					CHECK_INDEX_OPERATION(ltuple);
+					CHECK_TERNARY_OPERATION(ternary, number, ltuple, ltuple);
+					CHECK_CALL_OPERATION(ltuple);
+					default:
+						throw expression_builder_error();
+				}
+			}
 		public:
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
 				return std::visit(overloaded{
@@ -841,7 +906,14 @@ namespace stork {
 						} else {
 							RETURN_EXPRESSION_OF_TYPE(array);
 						}
-					}
+                    },
+                    [&](const tuple_type& tt) {
+                        if (np->is_lvalue()) {
+                            RETURN_EXPRESSION_OF_TYPE(ltuple);
+                        } else {
+                            RETURN_EXPRESSION_OF_TYPE(tuple);
+                        }
+                    }
 				}, *np->get_type_id());
 			}
 			
@@ -881,6 +953,9 @@ namespace stork {
 				},
 				[&](const array_type& at) {
 					return expression_builder<array>::build_param_expression(np, context);
+				},
+				[&](const tuple_type& at) {
+					return expression_builder<tuple>::build_param_expression(np, context);
 				}
 			}, *type_id);
 		}
@@ -930,6 +1005,7 @@ namespace stork {
 			}
 		};
 		
+		template <typename T>
 		class array_initialization_expression: public expression<lvalue> {
 		private:
 			std::vector<expression<lvalue>::ptr> _exprs;
@@ -940,13 +1016,13 @@ namespace stork {
 			}
 			
 			lvalue evaluate(runtime_context& context) const override {
-				array arr;
+				T arr;
 				
 				for (const expression<lvalue>::ptr& expr : _exprs) {
 					arr.push_back(expr->evaluate(context));
 				}
 				
-				return std::make_shared<variable_impl<array> >(std::move(arr));
+				return std::make_shared<variable_impl<T> >(std::move(arr));
 			}
 		};
 	}
@@ -983,7 +1059,7 @@ namespace stork {
 				}
 			}
 			++it;
-			return std::make_unique<array_initialization_expression>(std::move(exprs));
+			return std::make_unique<array_initialization_expression<array> >(std::move(exprs));
 		} else {
 			return build_expression<lvalue>(type_id, context, it, allow_comma);
 		}
@@ -1006,6 +1082,17 @@ namespace stork {
 			},
 			[&](const array_type& at) {
 				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<array> >());
+			},
+			[&](const tuple_type& tt) {
+				std::vector<expression<lvalue>::ptr> exprs;
+				
+				exprs.reserve(tt.inner_type_id.size());
+				
+				for (type_handle it : tt.inner_type_id) {
+					exprs.emplace_back(build_default_initialization(it));
+				}
+				
+				return expression<lvalue>::ptr(std::make_unique<array_initialization_expression<tuple> >(std::move(exprs)));
 			}
 		}, *type_id);
 	}

@@ -41,6 +41,7 @@ namespace stork {
 	template class variable_impl<string>;
 	template class variable_impl<function>;
 	template class variable_impl<array>;
+	template class variable_impl<tuple>;
 	
 	number clone_variable_value(number value) {
 		return value;
@@ -56,6 +57,14 @@ namespace stork {
 
 	array clone_variable_value(const array& value) {
 		array ret;
+		for (const variable_ptr& v : value) {
+			ret.push_back(v->clone());
+		}
+		return ret;
+	}
+	
+	tuple clone_variable_value(const tuple& value) {
+		tuple ret;
 		for (const variable_ptr& v : value) {
 			ret.push_back(v->clone());
 		}

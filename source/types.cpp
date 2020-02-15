@@ -96,6 +96,16 @@ namespace std {
 				}
 				ret += ")";
 				return ret;
+			},
+			[](const tuple_type& tt) {
+				std::string ret = "<";
+				const char* separator = "";
+				for (type_handle it : tt.inner_type_id) {
+					ret +=  separator + to_string(it);
+					separator = ",";
+				}
+				ret += ">";
+				return ret;
 			}
 		}, *t);
 	}

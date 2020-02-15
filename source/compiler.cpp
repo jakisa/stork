@@ -34,6 +34,7 @@ namespace stork {
 						case reserved_token::kw_number:
 						case reserved_token::kw_string:
 						case reserved_token::kw_void:
+						case reserved_token::lt:
 							return true;
 						default:
 							return false;
@@ -409,18 +410,34 @@ namespace stork {
 		switch (it->get_reserved_token()) {
 			case reserved_token::kw_void:
 				t = ctx.get_handle(simple_type::nothing);
+				++it;
 				break;
 			case reserved_token::kw_number:
 				t = ctx.get_handle(simple_type::number);
+				++it;
 				break;
 			case reserved_token::kw_string:
 				t = ctx.get_handle(simple_type::string);
+				++it;
+				break;
+			case reserved_token::lt:
+				{
+					tuple_type tt;
+					++it;
+					while (!it->has_value(reserved_token::gt)) {
+						if (!tt.inner_type_id.empty()) {
+							parse_token_value(ctx, it, reserved_token::comma);
+						}
+						tt.inner_type_id.push_back(parse_type(ctx, it));
+					}
+					++it;
+					t = ctx.get_handle(std::move(tt));
+				}
 				break;
 			default:
 				throw unexpected_syntax(it);
 		}
 		
-		++it;
 		while (it->is_reserved_token()) {
 			switch (it->get_reserved_token()) {
 				case reserved_token::open_square:

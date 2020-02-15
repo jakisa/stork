@@ -14,8 +14,9 @@ namespace stork {
 	
 	struct array_type;
 	struct function_type;
+	struct tuple_type;
 	
-	using type = std::variant<simple_type, array_type, function_type>;
+	using type = std::variant<simple_type, array_type, function_type, tuple_type>;
 	using type_handle = const type*;
 	
 	struct array_type {
@@ -29,6 +30,10 @@ namespace stork {
 		};
 		type_handle return_type_id;
 		std::vector<param> param_type_id;
+	};
+	
+	struct tuple_type {
+		std::vector<type_handle> inner_type_id;
 	};
 	
 	class type_registry {

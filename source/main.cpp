@@ -87,7 +87,14 @@ public function void sort(number[]& arr) {
 }
 
 public function number[] test() {
+	<number, string>[] tuples;
+	tuples[0][0] = 1;
+	tuples[0][1] = "abc";
+	tuples[1][0] = 2;
+	tuples[1][1] = "def";
+	
 	number[] arr = {6, 2, 6, 3, 4, 5, 6, 7, 1};
+	
 	sort(&arr);
 	return arr;
 }
