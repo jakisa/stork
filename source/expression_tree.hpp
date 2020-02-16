@@ -59,6 +59,8 @@ namespace stork {
 		ternary,
 		
 		call,
+		
+		init,
 	};
 	
 	struct node;

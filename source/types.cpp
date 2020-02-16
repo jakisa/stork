@@ -36,6 +36,39 @@ namespace stork {
 						return ft2.param_type_id[i].by_ref;
 					}
 				}
+				return false;
+			}
+			case 3:
+			{
+				const tuple_type& tt1 = std::get<3>(t1);
+				const tuple_type& tt2 = std::get<3>(t2);
+				
+				if (tt1.inner_type_id.size() != tt2.inner_type_id.size()) {
+					return tt1.inner_type_id.size() < tt2.inner_type_id.size();
+				}
+				
+				for (size_t i = 0; i < tt1.inner_type_id.size(); ++i) {
+					if (tt1.inner_type_id[i] != tt2.inner_type_id[i]) {
+						return tt1.inner_type_id[i] < tt2.inner_type_id[i];
+					}
+				}
+				return false;
+			}
+			case 4:
+			{
+				const init_list_type& ilt1 = std::get<4>(t1);
+				const init_list_type& ilt2 = std::get<4>(t2);
+				
+				if (ilt1.inner_type_id.size() != ilt2.inner_type_id.size()) {
+					return ilt1.inner_type_id.size() < ilt2.inner_type_id.size();
+				}
+				
+				for (size_t i = 0; i < ilt1.inner_type_id.size(); ++i) {
+					if (ilt1.inner_type_id[i] != ilt2.inner_type_id[i]) {
+						return ilt1.inner_type_id[i] < ilt2.inner_type_id[i];
+					}
+				}
+				return false;
 			}
 		}
 		
@@ -105,6 +138,16 @@ namespace std {
 					separator = ",";
 				}
 				ret += ">";
+				return ret;
+			},
+			[](const init_list_type& ilt) {
+				std::string ret = "{";
+				const char* separator = "";
+				for (type_handle it : ilt.inner_type_id) {
+					ret +=  separator + to_string(it);
+					separator = ",";
+				}
+				ret += "}";
 				return ret;
 			}
 		}, *t);

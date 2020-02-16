@@ -7,6 +7,7 @@
 namespace stork {
 	namespace {
 		enum struct operator_precedence {
+			brackets,
 			postfix,
 			prefix,
 			multiplication,
@@ -42,6 +43,9 @@ namespace stork {
 				char_index(char_index)
 			{
 				switch (operation) {
+					case node_operation::init:
+						precedence = operator_precedence::brackets;
+						break;
 					case node_operation::param: // This will never happen. Used only for the node creation.
 					case node_operation::postinc:
 					case node_operation::postdec:
@@ -130,6 +134,9 @@ namespace stork {
 				}
 				
 				switch (operation) {
+					case node_operation::init:
+						number_of_operands = 0; //zero or more
+						break;
 					case node_operation::postinc:
 					case node_operation::postdec:
 					case node_operation::preinc:
@@ -242,6 +249,8 @@ namespace stork {
 					return operator_info(node_operation::index, line_number, char_index);
 				case reserved_token::kw_sizeof:
 					return operator_info(node_operation::size, line_number, char_index);
+				case reserved_token::open_curly:
+					return operator_info(node_operation::init, line_number, char_index);
 				default:
 					throw unexpected_syntax_error(std::to_string(token), line_number, char_index);
 			}
@@ -324,6 +333,33 @@ namespace stork {
 						} else {
 							throw syntax_error("Expected closing ')'", it->get_line_number(), it->get_char_index());
 						}
+					}
+					
+					if (oi.operation == node_operation::init && expected_operand) {
+						++it;
+						std::vector<node_ptr> children;
+						if (!it->has_value(reserved_token::close_curly)) {
+							while (true) {
+								children.push_back(parse_expression_tree_impl(context, it, false, false));
+								if (it->has_value(reserved_token::close_curly)) {
+									break;
+								} else if (it->has_value(reserved_token::comma)) {
+									++it;
+								} else {
+									throw syntax_error("Expected ',', or closing '}'", it->get_line_number(), it->get_char_index());
+								}
+							}
+						}
+						operand_stack.push(std::make_unique<node>(
+							context,
+							node_operation::init,
+							std::move(children),
+							it->get_line_number(),
+							it->get_char_index()
+						));
+						
+						expected_operand = false;
+						continue;
 					}
 					
 					if ((oi.precedence == operator_precedence::prefix) != expected_operand) {

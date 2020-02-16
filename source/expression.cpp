@@ -502,6 +502,32 @@ namespace stork {
 			}
 		};
 		
+		template<typename R>
+		class init_expression: public expression<R>{
+		private:
+			std::vector<expression<lvalue>::ptr> _exprs;
+		public:
+			init_expression(
+				std::vector<expression<lvalue>::ptr> exprs
+			):
+				_exprs(std::move(exprs))
+			{
+			}
+			
+			R evaluate(runtime_context& context) const override {
+				if constexpr(std::is_same<void, R>()) {
+					for (const expression<lvalue>::ptr& expr : _exprs) {
+						expr->evaluate(context);
+					}
+				} else if constexpr(std::is_same<array, R>() || std::is_same<tuple, R>()) {
+					initializer_list lst;
+					for (const expression<lvalue>::ptr& expr : _exprs) {
+						lst.push_back(expr->evaluate(context));
+					}
+					return lst;
+				}
+			}
+		};
 	
 		template <typename T>
 		class param_expression: public expression<lvalue> {
@@ -518,12 +544,32 @@ namespace stork {
 			}
 		};
 		
-		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context);
-		
 		struct expression_builder_error {
 			expression_builder_error(){
 			}
 		};
+		
+		class tuple_initialization_expression: public expression<lvalue> {
+		private:
+			std::vector<expression<lvalue>::ptr> _exprs;
+		public:
+			tuple_initialization_expression(std::vector<expression<lvalue>::ptr> exprs) :
+				_exprs(std::move(exprs))
+			{
+			}
+			
+			lvalue evaluate(runtime_context& context) const override {
+				tuple ret;
+				
+				for (const expression<lvalue>::ptr& expr : _exprs) {
+					ret.push_back(expr->evaluate(context));
+				}
+				
+				return std::make_unique<variable_impl<tuple> >(std::move(ret));
+			}
+		};
+		
+		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context);
 		
 #define RETURN_EXPRESSION_OF_TYPE(T)\
 	if constexpr(is_convertible<T, R>::value) {\
@@ -872,6 +918,24 @@ namespace stork {
 						throw expression_builder_error();
 				}
 			}
+			
+			static expression_ptr build_initializer_list_expression(const node_ptr& np, compiler_context& context) {
+				switch (std::get<node_operation>(np->get_value())) {
+					case node_operation::init:
+						{
+							std::vector<expression<lvalue>::ptr> exprs;
+							exprs.reserve(np->get_children().size());
+							for (const node_ptr& child : np->get_children()) {
+								exprs.emplace_back(build_lvalue_expression(child->get_type_id(), child, context));
+							}
+							return std::make_unique<init_expression<R> >(std::move(exprs));
+						}
+					CHECK_BINARY_OPERATION(comma, void, initializer_list);
+					CHECK_TERNARY_OPERATION(ternary, number, initializer_list, initializer_list);
+					default:
+						throw expression_builder_error();
+				}
+			}
 		public:
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
 				return std::visit(overloaded{
@@ -906,14 +970,17 @@ namespace stork {
 						} else {
 							RETURN_EXPRESSION_OF_TYPE(array);
 						}
-                    },
-                    [&](const tuple_type& tt) {
-                        if (np->is_lvalue()) {
-                            RETURN_EXPRESSION_OF_TYPE(ltuple);
-                        } else {
-                            RETURN_EXPRESSION_OF_TYPE(tuple);
-                        }
-                    }
+					},
+					[&](const tuple_type& tt) {
+						if (np->is_lvalue()) {
+							RETURN_EXPRESSION_OF_TYPE(ltuple);
+						} else {
+							RETURN_EXPRESSION_OF_TYPE(tuple);
+						}
+					},
+					[&](const init_list_type& ilt) {
+						RETURN_EXPRESSION_OF_TYPE(initializer_list);
+					}
 				}, *np->get_type_id());
 			}
 			
@@ -948,14 +1015,18 @@ namespace stork {
 							return expression<lvalue>::ptr();
 					}
 				},
-				[&](const function_type& ft) {
+				[&](const function_type&) {
 					return expression_builder<function>::build_param_expression(np, context);
 				},
-				[&](const array_type& at) {
+				[&](const array_type&) {
 					return expression_builder<array>::build_param_expression(np, context);
 				},
-				[&](const tuple_type& at) {
+				[&](const tuple_type&) {
 					return expression_builder<tuple>::build_param_expression(np, context);
+				},
+				[&](const init_list_type&) {
+					throw expression_builder_error();
+					return expression<lvalue>::ptr();
 				}
 			}, *type_id);
 		}
@@ -978,7 +1049,6 @@ namespace stork {
 						return std::make_unique<empty_expression>();
 					}
 				}
-				
 				if constexpr(std::is_same<R, lvalue>::value) {
 					return build_lvalue_expression(
 						type_id,
@@ -1004,27 +1074,6 @@ namespace stork {
 				return std::make_shared<variable_impl<T> >(T{});
 			}
 		};
-		
-		template <typename T>
-		class array_initialization_expression: public expression<lvalue> {
-		private:
-			std::vector<expression<lvalue>::ptr> _exprs;
-		public:
-			array_initialization_expression(std::vector<expression<lvalue>::ptr> exprs) :
-				_exprs(std::move(exprs))
-			{
-			}
-			
-			lvalue evaluate(runtime_context& context) const override {
-				T arr;
-				
-				for (const expression<lvalue>::ptr& expr : _exprs) {
-					arr.push_back(expr->evaluate(context));
-				}
-				
-				return std::make_shared<variable_impl<T> >(std::move(arr));
-			}
-		};
 	}
 
 	expression<void>::ptr build_void_expression(compiler_context& context, tokens_iterator& it) {
@@ -1041,28 +1090,7 @@ namespace stork {
 		type_handle type_id,
 		bool allow_comma
 	) {
-		if (it->has_value(reserved_token::open_curly)) {
-			if (!std::holds_alternative<array_type>(*type_id)) {
-				throw unexpected_error("{", it->get_line_number(), it->get_char_index());
-			}
-			++it;
-			const array_type* at = std::get_if<array_type>(type_id);
-			
-			std::vector<expression<lvalue>::ptr> exprs;
-			
-			while (!it->has_value(reserved_token::close_curly)) {
-				exprs.push_back(build_expression<lvalue>(at->inner_type_id, context, it, false));
-				if (it->has_value(reserved_token::comma)) {
-					++it;
-				} else if (!it->has_value(reserved_token::close_curly)) {
-					throw expected_syntax_error("}", it->get_line_number(), it->get_char_index());
-				}
-			}
-			++it;
-			return std::make_unique<array_initialization_expression<array> >(std::move(exprs));
-		} else {
-			return build_expression<lvalue>(type_id, context, it, allow_comma);
-		}
+		return build_expression<lvalue>(type_id, context, it, allow_comma);
 	}
 
 	expression<lvalue>::ptr build_default_initialization(type_handle type_id) {
@@ -1092,7 +1120,13 @@ namespace stork {
 					exprs.emplace_back(build_default_initialization(it));
 				}
 				
-				return expression<lvalue>::ptr(std::make_unique<array_initialization_expression<tuple> >(std::move(exprs)));
+				return expression<lvalue>::ptr(
+					std::make_unique<tuple_initialization_expression>(std::move(exprs))
+				);
+			},
+			[&](const init_list_type& ilt) {
+				//cannot happen
+				return expression<lvalue>::ptr();
 			}
 		}, *type_id);
 	}

@@ -22,7 +22,8 @@ namespace stork {
 	using string = std::shared_ptr<std::string>;
 	using array = std::deque<variable_ptr>;
 	using function = std::function<void(runtime_context&)>;
-	using tuple = std::vector<variable_ptr>;
+	using tuple = array;
+	using initializer_list = array;
 	
 	using lvalue = variable_ptr;
 	using lnumber = std::shared_ptr<variable_impl<number> >;
@@ -30,7 +31,7 @@ namespace stork {
 	using larray = std::shared_ptr<variable_impl<array> >;
 	using lfunction = std::shared_ptr<variable_impl<function> >;
 	using ltuple = std::shared_ptr<variable_impl<tuple> >;
-	
+
 	class variable: public std::enable_shared_from_this<variable> {
 	private:
 		variable(const variable&) = delete;

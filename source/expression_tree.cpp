@@ -15,6 +15,38 @@ namespace stork {
 			if (type_from == type_to) {
 				return true;
 			}
+			if (const init_list_type* ilt = std::get_if<init_list_type>(type_from)) {
+				if (lvalue_to) {
+					return false;
+				}
+				if (type_to == type_registry::get_void_handle()) {
+					return true;
+				}
+				return std::visit(overloaded{
+					[&](const array_type& at) {
+						for (type_handle it : ilt->inner_type_id) {
+							if (it != at.inner_type_id) {
+								return false;
+							}
+						}
+						return true;
+					},
+					[&](const tuple_type& tt) {
+						if (tt.inner_type_id.size() != ilt->inner_type_id.size()) {
+							return false;
+						}
+						for (size_t i = 0; i < tt.inner_type_id.size(); ++i) {
+							if (ilt->inner_type_id[i] != tt.inner_type_id[i]) {
+								return false;
+							}
+						}
+						return true;
+					},
+					[&](const type&) {
+						return false;
+					}
+				}, *type_to);
+			}
 			return type_from == type_registry::get_number_handle() && type_to == type_registry::get_string_handle();
 		}
 	}
@@ -214,6 +246,17 @@ namespace stork {
 							                     _line_number, _char_index);
 						}
 						break;
+					case node_operation::init:
+					{
+						init_list_type ilt;
+						ilt.inner_type_id.reserve(_children.size());
+						for (const node_ptr& child : _children) {
+							ilt.inner_type_id.push_back(child->get_type_id());
+						}
+						_type_id = context.get_handle(ilt);
+						_lvalue = false;
+						break;
+					}
 				}
 			}
 		},_value);
