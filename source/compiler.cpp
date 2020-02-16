@@ -34,7 +34,7 @@ namespace stork {
 						case reserved_token::kw_number:
 						case reserved_token::kw_string:
 						case reserved_token::kw_void:
-						case reserved_token::lt:
+						case reserved_token::open_square:
 							return true;
 						default:
 							return false;
@@ -420,11 +420,11 @@ namespace stork {
 				t = ctx.get_handle(simple_type::string);
 				++it;
 				break;
-			case reserved_token::lt:
+			case reserved_token::open_square:
 				{
 					tuple_type tt;
 					++it;
-					while (!it->has_value(reserved_token::gt)) {
+					while (!it->has_value(reserved_token::close_square)) {
 						if (!tt.inner_type_id.empty()) {
 							parse_token_value(ctx, it, reserved_token::comma);
 						}

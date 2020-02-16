@@ -131,13 +131,13 @@ namespace std {
 				return ret;
 			},
 			[](const tuple_type& tt) {
-				std::string ret = "<";
+				std::string ret = "[";
 				const char* separator = "";
 				for (type_handle it : tt.inner_type_id) {
 					ret +=  separator + to_string(it);
 					separator = ",";
 				}
-				ret += ">";
+				ret += "]";
 				return ret;
 			},
 			[](const init_list_type& ilt) {

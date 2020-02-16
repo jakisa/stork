@@ -87,9 +87,7 @@ public function void sort(number[]& arr) {
 }
 
 public function number[] test() {
-	number[] arr = {3, 5, 1, 8, 3, 7};
-	return arr;
-	/*<number, string>[] tuples;
+	[number, string][] tuples;
 	tuples[0][0] = 1;
 	tuples[0][1] = "abc";
 	tuples[1][0] = 2;
@@ -100,9 +98,9 @@ public function number[] test() {
 	
 	sort(&arr);
 	
-	//<number, string> tuple = {1, "aaa"};
+	//[number, string] tuple = {1, "aaa"};
 	
-	return arr;*/
+	return arr;
 }
 
 )STORK_CODE";
@@ -120,6 +118,24 @@ public function string test() {
 }
 
 )STORK_CODE";
+
+
+double my_add(double x, double y) {
+	return x + y;
+}
+
+double my_sub(double x, double y) {
+	return x - y;
+}
+
+double my_mul(double x, double y) {
+	return x * y;
+}
+
+double my_div(double x, double y) {
+	return x / y;
+}
+
 
 int main() {
 	using namespace stork;
