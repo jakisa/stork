@@ -30,36 +30,24 @@ namespace stork {
 		string convert_to_string(const lnumber& v) {
 			return convert_to_string(v->value);
 		}
-	
-		struct function_argument {
-			lvalue value;
-			
-			function_argument(lvalue value):
-				value(std::move(value))
-			{
+		
+		template <typename T>
+		typename T::element_type::value_type unbox(T&& t) {
+			if constexpr (std::is_same<T, larray>::value) {
+				return clone_variable_value(t->value);
+			} else {
+				return t->value;
 			}
-			
-			function_argument(number n):
-				value(std::make_shared<variable_impl<number> >(n))
-			{
-			}
-			
-			function_argument(string str):
-				value(std::make_shared<variable_impl<string> >(std::move(str)))
-			{
-			}
-		};
+		}
 	
 		template<typename To, typename From>
 		auto convert(From&& from) {
 			if constexpr(std::is_convertible<From, To>::value) {
 				return std::forward<From>(from);
 			} else if constexpr(is_boxed<From, To>::value) {
-				return (const To&)(from->value);
+				return unbox(std::forward<From>(from));
 			} else if constexpr(std::is_same<To, string>::value) {
 				return convert_to_string(from);
-			} else if constexpr(std::is_same<To, function_argument>::value) {
-				return function_argument(std::forward<From>(from));
 			} else {
 				static_assert(std::is_void<To>::value);
 			}
@@ -77,11 +65,7 @@ namespace stork {
 						std::is_same<From, lnumber>::value
 					)
 				) ||
-				std::is_void<To>::value ||
-				(
-					std::is_same<To, function_argument>::value &&
-					!std::is_same<From, void>::value
-				);
+				std::is_void<To>::value;
 		};
 		
 		
@@ -296,7 +280,7 @@ namespace stork {
 		);
 		
 		BINARY_EXPRESSION(assign,
-			t1->value = clone_variable_value(t2);
+			t1->value = std::move(t2);
 			return t1;
 		);
 		
@@ -429,12 +413,12 @@ namespace stork {
 		template<typename R, typename T>
 		class call_expression: public expression<R>{
 		private:
-			expression<lfunction>::ptr _fexpr;
-			std::vector<expression<function_argument>::ptr> _exprs;
+			expression<function>::ptr _fexpr;
+			std::vector<expression<lvalue>::ptr> _exprs;
 		public:
 			call_expression(
-				expression<lfunction>::ptr fexpr,
-				std::vector<expression<function_argument>::ptr> exprs
+				expression<function>::ptr fexpr,
+				std::vector<expression<lvalue>::ptr> exprs
 			):
 				_fexpr(std::move(fexpr)),
 				_exprs(std::move(exprs))
@@ -446,17 +430,17 @@ namespace stork {
 				params.reserve(_exprs.size());
 				
 				for (size_t i = 0; i < _exprs.size(); ++i) {
-					params.push_back(_exprs[i]->evaluate(context).value);
+					params.push_back(_exprs[i]->evaluate(context));
 				}
 				
-				lfunction f = _fexpr->evaluate(context);
+				function f = _fexpr->evaluate(context);
 
 				for (size_t i = params.size(); i > 0; --i) {
 					context.push(std::move(params[i-1]));
 				}
 
 				context.call();
-				f->value(context);
+				f(context);
 			
 				if constexpr (std::is_same<R, void>::value) {
 					context.end_function(_exprs.size());
@@ -471,17 +455,18 @@ namespace stork {
 		};
 		
 	
-		class param_expression: public expression<function_argument> {
+		template <typename T>
+		class param_expression: public expression<lvalue> {
 		private:
-			expression<function_argument>::ptr _expr;
+			typename expression<T>::ptr _expr;
 		public:
-			param_expression(expression<function_argument>::ptr expr) :
+			param_expression(typename expression<T>::ptr expr) :
 				_expr(std::move(expr))
 			{
 			}
 			
-			function_argument evaluate(runtime_context& context) const override {
-				return function_argument(_expr->evaluate(context).value->clone());
+			lvalue evaluate(runtime_context& context) const override {
+				return std::make_shared<variable_impl<T> >(_expr->evaluate(context));
 			}
 		};
 		
@@ -491,12 +476,12 @@ namespace stork {
 		};
 		
 #define RETURN_EXPRESSION_OF_TYPE(T)\
-		if constexpr(is_convertible<T, R>::value) {\
-			return build_##T##_expression(np, context);\
-		} else {\
-			throw expression_builder_error();\
-			return expression_ptr();\
-		}
+	if constexpr(is_convertible<T, R>::value) {\
+		return build_##T##_expression(np, context);\
+	} else {\
+		throw expression_builder_error();\
+		return expression_ptr();\
+	}
 
 #define CHECK_IDENTIFIER(T1)\
 	if (std::holds_alternative<identifier>(np->get_value())) {\
@@ -510,91 +495,114 @@ namespace stork {
 	}
 
 #define CHECK_UNARY_OPERATION(name, T1)\
-		case node_operation::name:\
-			return expression_ptr(\
-				std::make_unique<name##_expression<R, T1> > (\
-					expression_builder<T1>::build_expression(np->get_children()[0], context)\
-				)\
-			);
+	case node_operation::name:\
+		return expression_ptr(\
+			std::make_unique<name##_expression<R, T1> > (\
+				expression_builder<T1>::build_expression(np->get_children()[0], context)\
+			)\
+		);
 
 #define CHECK_BINARY_OPERATION(name, T1, T2)\
-		case node_operation::name:\
-			return expression_ptr(\
-				std::make_unique<name##_expression<R, T1, T2> > (\
-					expression_builder<T1>::build_expression(np->get_children()[0], context),\
-					expression_builder<T2>::build_expression(np->get_children()[1], context)\
-				)\
-			);
+	case node_operation::name:\
+		return expression_ptr(\
+			std::make_unique<name##_expression<R, T1, T2> > (\
+				expression_builder<T1>::build_expression(np->get_children()[0], context),\
+				expression_builder<T2>::build_expression(np->get_children()[1], context)\
+			)\
+		);
 
 #define CHECK_TERNARY_OPERATION(name, T1, T2, T3)\
-		case node_operation::name:\
-			return expression_ptr(\
-				std::make_unique<name##_expression<R, T1, T2, T3> > (\
-					expression_builder<T1>::build_expression(np->get_children()[0], context),\
-					expression_builder<T2>::build_expression(np->get_children()[1], context),\
-					expression_builder<T3>::build_expression(np->get_children()[2], context)\
-				)\
-			);
+	case node_operation::name:\
+		return expression_ptr(\
+			std::make_unique<name##_expression<R, T1, T2, T3> > (\
+				expression_builder<T1>::build_expression(np->get_children()[0], context),\
+				expression_builder<T2>::build_expression(np->get_children()[1], context),\
+				expression_builder<T3>::build_expression(np->get_children()[2], context)\
+			)\
+		);
 
 #define CHECK_COMPARISON_OPERATION(name)\
-		case node_operation::name:\
-			if (\
-				np->get_children()[0]->get_type_id() == type_registry::get_number_handle() &&\
-				np->get_children()[1]->get_type_id() == type_registry::get_number_handle()\
-			) {\
-				return expression_ptr(\
-					std::make_unique<name##_expression<R, number, number> > (\
-						expression_builder<number>::build_expression(np->get_children()[0], context),\
-						expression_builder<number>::build_expression(np->get_children()[1], context)\
-					)\
-				);\
-			} else {\
-				return expression_ptr(\
-					std::make_unique<name##_expression<R, string, string> > (\
-						expression_builder<string>::build_expression(np->get_children()[0], context),\
-						expression_builder<string>::build_expression(np->get_children()[1], context)\
-					)\
-				);\
-			}
-
-#define CHECK_INDEX_OPERATION(T)\
-		case node_operation::index:\
+	case node_operation::name:\
+		if (\
+			np->get_children()[0]->get_type_id() == type_registry::get_number_handle() &&\
+			np->get_children()[1]->get_type_id() == type_registry::get_number_handle()\
+		) {\
 			return expression_ptr(\
-				std::make_unique<index_expression<R, T> >(\
-					expression_builder<larray>::build_expression(np->get_children()[0], context),\
+				std::make_unique<name##_expression<R, number, number> > (\
+					expression_builder<number>::build_expression(np->get_children()[0], context),\
 					expression_builder<number>::build_expression(np->get_children()[1], context)\
 				)\
-			);
-
-#define CHECK_CALL_OPERATION(T)\
-		case node_operation::call:\
-		{\
-			std::vector<expression<function_argument>::ptr> arguments;\
-			for (size_t i = 1; i < np->get_children().size(); ++i) {\
-				const node_ptr& child = np->get_children()[i];\
-				if (\
-					child->is_node_operation() &&\
-					std::get<node_operation>(child->get_value()) == node_operation::param\
-				) {\
-					arguments.push_back(\
-						std::make_unique<param_expression>(\
-							expression_builder<function_argument>::build_expression(child->get_children()[0], context)\
-						)\
-					);\
-				} else {\
-					arguments.push_back(\
-						expression_builder<function_argument>::build_expression(child, context)\
-					);\
-				}\
-			}\
+			);\
+		} else {\
 			return expression_ptr(\
-				std::make_unique<call_expression<R, T> >(\
-					expression_builder<lfunction>::build_expression(np->get_children()[0], context),\
-					std::move(arguments)\
+				std::make_unique<name##_expression<R, string, string> > (\
+					expression_builder<string>::build_expression(np->get_children()[0], context),\
+					expression_builder<string>::build_expression(np->get_children()[1], context)\
 				)\
 			);\
 		}
 
+#define CHECK_INDEX_OPERATION(T)\
+	case node_operation::index:\
+		return expression_ptr(\
+			std::make_unique<index_expression<R, T> >(\
+				expression_builder<larray>::build_expression(np->get_children()[0], context),\
+				expression_builder<number>::build_expression(np->get_children()[1], context)\
+			)\
+		);
+
+#define PARAM_EXPRESSION(T)\
+	expression<lvalue>::ptr(\
+		std::make_unique<param_expression<T> >(\
+			expression_builder<T>::build_expression(child->get_children()[0], context)\
+		)\
+	)
+
+#define CHECK_CALL_OPERATION(T)\
+	case node_operation::call:\
+	{\
+		std::vector<expression<lvalue>::ptr> arguments;\
+		const function_type* ft = std::get_if<function_type>(np->get_children()[0]->get_type_id());\
+		for (size_t i = 1; i < np->get_children().size(); ++i) {\
+			const node_ptr& child = np->get_children()[i];\
+			if (\
+				child->is_node_operation() &&\
+				std::get<node_operation>(child->get_value()) == node_operation::param\
+			) {\
+				arguments.push_back(\
+					std::visit(overloaded{\
+						[&](simple_type st){\
+							switch (st) {\
+								case simple_type::number:\
+									return PARAM_EXPRESSION(number);\
+								case simple_type::string:\
+									return PARAM_EXPRESSION(string);\
+								case simple_type::nothing:\
+									throw expression_builder_error();\
+									return expression<lvalue>::ptr();\
+							}\
+						},\
+						[&](const function_type& ft) {\
+							return PARAM_EXPRESSION(function);\
+						},\
+						[&](const array_type& at) {\
+							return PARAM_EXPRESSION(array);\
+						}\
+					}, *ft->param_type_id[i-1].type_id)\
+				);\
+			} else {\
+				arguments.push_back(\
+					expression_builder<lvalue>::build_expression(child, context)\
+				);\
+			}\
+		}\
+		return expression_ptr(\
+			std::make_unique<call_expression<R, T> >(\
+				expression_builder<function>::build_expression(np->get_children()[0], context),\
+				std::move(arguments)\
+			)\
+		);\
+	}
 
 		template<typename R>
 		class expression_builder{
@@ -715,15 +723,40 @@ namespace stork {
 				}
 			}
 			
+			static expression_ptr build_array_expression(const node_ptr& np, compiler_context& context) {
+				CHECK_IDENTIFIER(larray);
+				
+				switch (std::get<node_operation>(np->get_value())) {
+					CHECK_BINARY_OPERATION(comma, void, array);
+					CHECK_TERNARY_OPERATION(ternary, number, array, array);
+					CHECK_INDEX_OPERATION(larray);
+					CHECK_CALL_OPERATION(larray);
+					default:
+						throw expression_builder_error();
+				}
+			}
+			
 			static expression_ptr build_larray_expression(const node_ptr& np, compiler_context& context) {
 				CHECK_IDENTIFIER(larray);
 				
 				switch (std::get<node_operation>(np->get_value())) {
-					CHECK_BINARY_OPERATION(assign, larray, larray);
+					CHECK_BINARY_OPERATION(assign, larray, array);
 					CHECK_BINARY_OPERATION(comma, void, larray);
 					CHECK_INDEX_OPERATION(larray);
 					CHECK_TERNARY_OPERATION(ternary, number, larray, larray);
-					CHECK_CALL_OPERATION(larray);
+					default:
+						throw expression_builder_error();
+				}
+			}
+			
+			static expression_ptr build_function_expression(const node_ptr& np, compiler_context& context) {
+				CHECK_IDENTIFIER(lfunction);
+				
+				switch (std::get<node_operation>(np->get_value())) {
+					CHECK_BINARY_OPERATION(comma, void, function);
+					CHECK_TERNARY_OPERATION(ternary, number, function, function);
+					CHECK_INDEX_OPERATION(lfunction);
+					CHECK_CALL_OPERATION(lfunction);
 					default:
 						throw expression_builder_error();
 				}
@@ -733,11 +766,10 @@ namespace stork {
 				CHECK_IDENTIFIER(lfunction);
 				
 				switch (std::get<node_operation>(np->get_value())) {
-					CHECK_BINARY_OPERATION(assign, lfunction, lfunction);
+					CHECK_BINARY_OPERATION(assign, lfunction, function);
 					CHECK_BINARY_OPERATION(comma, void, lfunction);
 					CHECK_INDEX_OPERATION(lfunction);
 					CHECK_TERNARY_OPERATION(ternary, number, lfunction, lfunction);
-					CHECK_CALL_OPERATION(lfunction);
 					default:
 						throw expression_builder_error();
 				}
@@ -764,15 +796,24 @@ namespace stork {
 						}
 					},
 					[&](const function_type& ft) {
-						RETURN_EXPRESSION_OF_TYPE(lfunction);
+						if (np->is_lvalue()) {
+							RETURN_EXPRESSION_OF_TYPE(lfunction);
+						} else {
+							RETURN_EXPRESSION_OF_TYPE(function);
+						}
 					},
 					[&](const array_type& at) {
-						RETURN_EXPRESSION_OF_TYPE(larray);
+						if (np->is_lvalue()) {
+							RETURN_EXPRESSION_OF_TYPE(larray);
+						} else {
+							RETURN_EXPRESSION_OF_TYPE(array);
+						}
 					}
 				}, *np->get_type_id());
 			}
 		};
 
+#undef PARAM_EXPRESSION
 #undef CHECK_CALL_OPERATION
 #undef CHECK_INDEX_OPERATION
 #undef CHECK_COMPARISON_OPERATION
