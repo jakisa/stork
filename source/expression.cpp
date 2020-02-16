@@ -576,17 +576,11 @@ namespace stork {
 					child->is_node_operation() &&\
 					std::get<node_operation>(child->get_value()) == node_operation::param\
 				) {\
-					if (child->get_children()[0]->is_lvalue()) {\
-						arguments.push_back(\
-							std::make_unique<param_expression>(\
-								expression_builder<function_argument>::build_expression(child->get_children()[0], context)\
-							)\
-						);\
-					} else {\
-						arguments.push_back(\
+					arguments.push_back(\
+						std::make_unique<param_expression>(\
 							expression_builder<function_argument>::build_expression(child->get_children()[0], context)\
-						);\
-					}\
+						)\
+					);\
 				} else {\
 					arguments.push_back(\
 						expression_builder<function_argument>::build_expression(child, context)\
