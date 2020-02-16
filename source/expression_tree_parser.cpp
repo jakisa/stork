@@ -60,6 +60,7 @@ namespace stork {
 					case node_operation::bnot:
 					case node_operation::lnot:
 					case node_operation::size:
+					case node_operation::tostring:
 						precedence = operator_precedence::prefix;
 						break;
 					case node_operation::mul:
@@ -146,6 +147,7 @@ namespace stork {
 					case node_operation::bnot:
 					case node_operation::lnot:
 					case node_operation::size:
+					case node_operation::tostring:
 					case node_operation::call: //at least one
 						number_of_operands = 1;
 						break;
@@ -249,6 +251,8 @@ namespace stork {
 					return operator_info(node_operation::index, line_number, char_index);
 				case reserved_token::kw_sizeof:
 					return operator_info(node_operation::size, line_number, char_index);
+				case reserved_token::kw_tostring:
+					return operator_info(node_operation::tostring, line_number, char_index);
 				case reserved_token::open_curly:
 					return operator_info(node_operation::init, line_number, char_index);
 				default:

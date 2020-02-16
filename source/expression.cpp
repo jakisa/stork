@@ -25,20 +25,6 @@ namespace stork {
 			using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 		};
 		
-		string convert_to_string(number n) {
-			std::string str;
-			if (n == int(n)) {
-				str = std::to_string(int(n));
-			} else {
-				str = std::to_string(n);
-			}
-			return std::make_shared<std::string>(std::move(str));
-		}
-		
-		string convert_to_string(const lnumber& v) {
-			return convert_to_string(v->value);
-		}
-		
 		template <typename T>
 		auto unbox(T&& t) {
 			if constexpr (std::is_same<typename remove_cvref<T>::type, larray>::value) {
@@ -208,6 +194,10 @@ namespace stork {
 		
 		UNARY_EXPRESSION(size,
 			return t1->value.size();
+		);
+		
+		UNARY_EXPRESSION(tostring,
+			return convert_to_string(t1);
 		);
 
 #undef UNARY_EXPRESSION
@@ -814,6 +804,49 @@ namespace stork {
 				CHECK_IDENTIFIER(lstring);
 				
 				switch (std::get<node_operation>(np->get_value())) {
+					case node_operation::tostring:
+						if (np->get_children()[0]->is_lvalue()) {
+							return expression_ptr(std::make_unique<tostring_expression<R, lvalue> > (
+								expression_builder<lvalue>::build_expression(np->get_children()[0], context)
+							));
+						}
+						return std::visit(overloaded{
+							[&](simple_type st) {
+								switch (st) {
+									case simple_type::number:
+										return expression_ptr(std::make_unique<tostring_expression<R, number> > (
+											expression_builder<number>::build_expression(np->get_children()[0], context)
+										));
+									case simple_type::string:
+										return expression_ptr(std::make_unique<tostring_expression<R, string> > (
+											expression_builder<string>::build_expression(np->get_children()[0], context)
+										));
+									case simple_type::nothing:
+										throw expression_builder_error();
+										return expression_ptr();
+								}
+							},
+							[&](const function_type&) {
+								return expression_ptr(std::make_unique<tostring_expression<R, function> > (
+									expression_builder<function>::build_expression(np->get_children()[0], context)
+								));
+							},
+							[&](const array_type&) {
+								return expression_ptr(std::make_unique<tostring_expression<R, array> > (
+									expression_builder<array>::build_expression(np->get_children()[0], context)
+								));
+							},
+							[&](const tuple_type&) {
+								return expression_ptr(std::make_unique<tostring_expression<R, tuple> > (
+									expression_builder<tuple>::build_expression(np->get_children()[0], context)
+								));
+							},
+							[&](const init_list_type&) {
+								return expression_ptr(std::make_unique<tostring_expression<R, initializer_list> > (
+									expression_builder<initializer_list>::build_expression(np->get_children()[0], context)
+								));
+							}
+						}, *np->get_children()[0]->get_type_id());
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
 					CHECK_TERNARY_OPERATION(ternary, number, string, string);

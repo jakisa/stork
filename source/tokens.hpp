@@ -70,6 +70,7 @@ namespace stork {
 		close_square,
 		
 		kw_sizeof,
+		kw_tostring,
 		
 		kw_if,
 		kw_else,

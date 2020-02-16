@@ -1,6 +1,12 @@
 #include "variable.hpp"
 
 namespace stork {
+	namespace {
+		string from_std_string(std::string str) {
+			return std::make_shared<std::string>(std::move(str));
+		}
+	}
+	
 	template<typename T>
 	variable_impl<T>::variable_impl(T value):
 		value(std::move(value))
@@ -13,28 +19,8 @@ namespace stork {
 	}
 	
 	template<typename T>
-	std::string variable_impl<T>::to_string() const {
-		if constexpr(std::is_same<number, T>::value) {
-			if (value == int(value)) {
-				return std::to_string(int(value));
-			} else {
-				return std::to_string(value);
-			}
-		} else if constexpr(std::is_same<string, T>::value) {
-			return *value;
-		} else if constexpr(std::is_same<function, T>::value) {
-			return "FUNCTION";
-		} else {
-			std::string ret = "[";
-			const char* separator = "";
-			for (const variable_ptr& v : value) {
-				ret += separator;
-				ret += v->to_string();
-				separator = ", ";
-			}
-			ret += "]";
-			return ret;
-		}
+	string variable_impl<T>::to_string() const {
+		return convert_to_string(value);
 	}
 	
 	template class variable_impl<number>;
@@ -60,6 +46,38 @@ namespace stork {
 			ret.push_back(v->clone());
 		}
 		return ret;
+	}
+	
+	string convert_to_string(number value) {
+		if (value == int(value)) {
+			return from_std_string(std::to_string(int(value)));
+		} else {
+			return from_std_string(std::to_string(value));
+		}
+	}
+	
+	string convert_to_string(const string& value) {
+		return value;
+	}
+	
+	string convert_to_string(const function& value) {
+		return from_std_string("FUNCTION");
+	}
+	
+	string convert_to_string(const array& value) {
+		std::string ret = "[";
+		const char* separator = "";
+		for (const variable_ptr& v : value) {
+			ret += separator;
+			ret += *(v->to_string());
+			separator = ", ";
+		}
+		ret += "]";
+		return from_std_string(std::move(ret));
+	}
+	
+	string convert_to_string(const lvalue& var) {
+		return var->to_string();
 	}
 }
 

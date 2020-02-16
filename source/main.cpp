@@ -86,7 +86,7 @@ public function void sort(number[]& arr) {
 	quicksort(&arr, 0, sizeof(arr), greater);
 }
 
-public function number[] test() {
+public function string test() {
 	[number, string][] tuples;
 	tuples[0][0] = 1;
 	tuples[0][1] = "abc";
@@ -100,7 +100,7 @@ public function number[] test() {
 	
 	//[number, string] tuple = {1, "aaa"};
 	
-	return arr;
+	return tostring(arr)..tostring(arr);
 }
 
 )STORK_CODE";
@@ -160,28 +160,28 @@ int main() {
 		runtime_context rctx = compile(ctx, it);
 
 		std::cout <<
-			rctx.call(
+			*rctx.call(
 				rctx.get_public_function("fib"),
 				{std::make_shared<variable_impl<number> >(20)}
 			)->to_string()
 		<< std::endl;
 		
 		std::cout <<
-			rctx.call(
+			*rctx.call(
 				rctx.get_public_function("fib_recursive"),
 				{std::make_shared<variable_impl<number> >(20)}
 			)->to_string()
 		<< std::endl;
 
 		std::cout <<
-			rctx.call(
+			*rctx.call(
 				rctx.get_public_function("test_size"),
 				{}
 			)->to_string()
 		<< std::endl;
 
 		std::cout <<
-			rctx.call(
+			*rctx.call(
 				rctx.get_public_function("test"),
 				{}
 			)->to_string()

@@ -19,6 +19,7 @@ namespace stork {
 		bnot,
 		lnot,
 		size,
+		tostring,
 		
 		add,
 		sub,

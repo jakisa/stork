@@ -108,6 +108,10 @@ namespace stork {
 						_type_id = number_handle;
 						_lvalue = false;
 						break;
+					case node_operation::tostring:
+						_type_id = string_handle;
+						_lvalue = false;
+						break;
 					case node_operation::add:
 					case node_operation::sub:
 					case node_operation::mul:

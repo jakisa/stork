@@ -50,7 +50,7 @@ namespace stork {
 		
 		virtual variable_ptr clone() const = 0;
 		
-		virtual std::string to_string() const = 0;
+		virtual string to_string() const = 0;
 	};
 	
 	template<typename T>
@@ -64,19 +64,24 @@ namespace stork {
 		
 		variable_ptr clone() const override;
 	
-		std::string to_string() const override;
+		string to_string() const override;
 	};
 	
 	number clone_variable_value(number value);
 	string clone_variable_value(const string& value);
 	function clone_variable_value(const function& value);
 	array clone_variable_value(const array& value);
-	tuple clone_variable_value(const tuple& value);
-
+	
 	template <class T>
 	T clone_variable_value(const std::shared_ptr<variable_impl<T> >& v) {
 		return clone_variable_value(v->value);
 	}
+	
+	string convert_to_string(number value);
+	string convert_to_string(const string& value);
+	string convert_to_string(const function& value);
+	string convert_to_string(const array& value);
+	string convert_to_string(const lvalue& var);
 }
 
 #endif /* variable_hpp */
