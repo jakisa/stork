@@ -9,7 +9,7 @@
 #include "compiler.hpp"
 #include <stdlib.h>
 
-const char* stork_code1 = R"STORK_CODE(
+const char* stork_code = R"STORK_CODE(
 
 public function number fib_recursive(number idx) {
 	return idx <= 1 ? idx : fib_recursive(idx-2) + fib_recursive(idx-1);
@@ -107,16 +107,15 @@ public function number[] test() {
 
 )STORK_CODE";
 
-const char* stork_code = R"STORK_CODE(
+const char* stork_code1 = R"STORK_CODE(
 
 function number[] get_arr() {
 	return {1, 2, 3, 4, 5};
 }
 
 public function string test() {
-	//number n = get_arr()[3];
+	number[] arr = get_arr();
 	
-	//return n;
 	return 42;
 }
 
@@ -143,7 +142,7 @@ int main() {
 	
 	try {
 		runtime_context rctx = compile(ctx, it);
-/*
+
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("fib"),
@@ -164,14 +163,14 @@ int main() {
 				{}
 			)->to_string()
 		<< std::endl;
-*/
+
 		std::cout <<
 			rctx.call(
 				rctx.get_public_function("test"),
 				{}
 			)->to_string()
 		<< std::endl;
-/*
+
 		larray arr = std::make_shared<variable_impl<array> >(array());
 		srand((unsigned int)time(0));
 		for (int i = 0; i < 1000; ++i) {
@@ -186,7 +185,7 @@ int main() {
 		std::cout << std::is_sorted(arr->value.begin(), arr->value.end(), [](variable_ptr l, variable_ptr r){
 			return l->static_pointer_downcast<lnumber>()->value > r->static_pointer_downcast<lnumber>()->value;
 		})  << std::endl;
-*/
+
 	} catch (const error& err) {
 		code = stork_code;
 		format_error(err, get_character, std::cerr);

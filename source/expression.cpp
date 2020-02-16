@@ -772,7 +772,6 @@ namespace stork {
 					CHECK_BINARY_OPERATION(land, number, number);
 					CHECK_BINARY_OPERATION(lor, number, number);
 					CHECK_TERNARY_OPERATION(ternary, number, number, number);
-					CHECK_INDEX_OPERATION(lnumber);
 					CHECK_CALL_OPERATION(lnumber);
 					default:
 						throw expression_builder_error();
@@ -818,7 +817,6 @@ namespace stork {
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
 					CHECK_TERNARY_OPERATION(ternary, number, string, string);
-					CHECK_INDEX_OPERATION(lstring);
 					CHECK_CALL_OPERATION(lstring);
 					default:
 						throw expression_builder_error();
@@ -845,7 +843,6 @@ namespace stork {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, array);
 					CHECK_TERNARY_OPERATION(ternary, number, array, array);
-					CHECK_INDEX_OPERATION(larray);
 					CHECK_CALL_OPERATION(larray);
 					default:
 						throw expression_builder_error();
@@ -872,7 +869,6 @@ namespace stork {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, function);
 					CHECK_TERNARY_OPERATION(ternary, number, function, function);
-					CHECK_INDEX_OPERATION(lfunction);
 					CHECK_CALL_OPERATION(lfunction);
 					default:
 						throw expression_builder_error();
