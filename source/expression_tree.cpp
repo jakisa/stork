@@ -147,9 +147,12 @@ namespace stork {
 						_lvalue = _children.back()->is_lvalue();
 						break;
 					case node_operation::index:
+						if (!_children[0]->is_lvalue()) {
+							throw semantic_error("Only lvalues are indexable", _line_number, _char_index);
+						}
 						if (const array_type* at = std::get_if<array_type>(_children[0]->get_type_id())) {
 							_type_id = at->inner_type_id;
-							_lvalue = _children[0]->is_lvalue(); 
+							_lvalue = true;
 						} else {
 							throw semantic_error(to_string(_children[0]->_type_id) + " is not indexable",
 							                     _line_number, _char_index);
