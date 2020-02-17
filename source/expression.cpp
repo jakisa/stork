@@ -38,7 +38,7 @@ namespace stork {
 		auto convert(From&& from) {
 			if constexpr(std::is_convertible<From, To>::value) {
 				return std::forward<From>(from);
-			} else if constexpr(is_boxed<typename remove_cvref<From>::type, To>::value) {
+			} else if constexpr(is_boxed<From, To>::value) {
 				return unbox(std::forward<From>(from));
 			} else if constexpr(std::is_same<To, string>::value) {
 				return convert_to_string(from);
