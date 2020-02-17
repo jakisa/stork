@@ -641,18 +641,63 @@ namespace stork {
 		);
 
 #define CHECK_SIZE_OPERATION()\
-		case node_operation::size:\
-			if (std::holds_alternative<array_type>(*(np->get_children()[0]->get_type_id()))) {\
-				return expression_ptr(\
-					std::make_unique<size_expression<R, larray> > (\
-						expression_builder<larray>::build_expression(np->get_children()[0], context)\
-					)\
-				);\
-			} else {\
-				return expression_ptr(\
-					std::make_unique<constant_expression<R, number> >(1)\
-				);\
-			}
+	case node_operation::size:\
+		if (std::holds_alternative<array_type>(*(np->get_children()[0]->get_type_id()))) {\
+			return expression_ptr(\
+				std::make_unique<size_expression<R, larray> > (\
+					expression_builder<larray>::build_expression(np->get_children()[0], context)\
+				)\
+			);\
+		} else {\
+			return expression_ptr(\
+				std::make_unique<constant_expression<R, number> >(1)\
+			);\
+		}
+
+#define CHECK_TO_STRING_OPERATION()\
+	case node_operation::tostring:\
+		if (np->get_children()[0]->is_lvalue()) {\
+			return expression_ptr(std::make_unique<tostring_expression<R, lvalue> > (\
+				expression_builder<lvalue>::build_expression(np->get_children()[0], context)\
+			));\
+		}\
+		return std::visit(overloaded{\
+			[&](simple_type st) {\
+				switch (st) {\
+					case simple_type::number:\
+						return expression_ptr(std::make_unique<tostring_expression<R, number> > (\
+							expression_builder<number>::build_expression(np->get_children()[0], context)\
+						));\
+					case simple_type::string:\
+						return expression_ptr(std::make_unique<tostring_expression<R, string> > (\
+							expression_builder<string>::build_expression(np->get_children()[0], context)\
+						));\
+					case simple_type::nothing:\
+						throw expression_builder_error();\
+						return expression_ptr();\
+				}\
+			},\
+			[&](const function_type&) {\
+				return expression_ptr(std::make_unique<tostring_expression<R, function> > (\
+					expression_builder<function>::build_expression(np->get_children()[0], context)\
+				));\
+			},\
+			[&](const array_type&) {\
+				return expression_ptr(std::make_unique<tostring_expression<R, array> > (\
+					expression_builder<array>::build_expression(np->get_children()[0], context)\
+				));\
+			},\
+			[&](const tuple_type&) {\
+				return expression_ptr(std::make_unique<tostring_expression<R, tuple> > (\
+					expression_builder<tuple>::build_expression(np->get_children()[0], context)\
+				));\
+			},\
+			[&](const init_list_type&) {\
+				return expression_ptr(std::make_unique<tostring_expression<R, initializer_list> > (\
+					expression_builder<initializer_list>::build_expression(np->get_children()[0], context)\
+				));\
+			}\
+		}, *np->get_children()[0]->get_type_id());
 
 #define CHECK_BINARY_OPERATION(name, T1, T2)\
 	case node_operation::name:\
@@ -841,49 +886,7 @@ namespace stork {
 				CHECK_IDENTIFIER(lstring);
 				
 				switch (std::get<node_operation>(np->get_value())) {
-					case node_operation::tostring:
-						if (np->get_children()[0]->is_lvalue()) {
-							return expression_ptr(std::make_unique<tostring_expression<R, lvalue> > (
-								expression_builder<lvalue>::build_expression(np->get_children()[0], context)
-							));
-						}
-						return std::visit(overloaded{
-							[&](simple_type st) {
-								switch (st) {
-									case simple_type::number:
-										return expression_ptr(std::make_unique<tostring_expression<R, number> > (
-											expression_builder<number>::build_expression(np->get_children()[0], context)
-										));
-									case simple_type::string:
-										return expression_ptr(std::make_unique<tostring_expression<R, string> > (
-											expression_builder<string>::build_expression(np->get_children()[0], context)
-										));
-									case simple_type::nothing:
-										throw expression_builder_error();
-										return expression_ptr();
-								}
-							},
-							[&](const function_type&) {
-								return expression_ptr(std::make_unique<tostring_expression<R, function> > (
-									expression_builder<function>::build_expression(np->get_children()[0], context)
-								));
-							},
-							[&](const array_type&) {
-								return expression_ptr(std::make_unique<tostring_expression<R, array> > (
-									expression_builder<array>::build_expression(np->get_children()[0], context)
-								));
-							},
-							[&](const tuple_type&) {
-								return expression_ptr(std::make_unique<tostring_expression<R, tuple> > (
-									expression_builder<tuple>::build_expression(np->get_children()[0], context)
-								));
-							},
-							[&](const init_list_type&) {
-								return expression_ptr(std::make_unique<tostring_expression<R, initializer_list> > (
-									expression_builder<initializer_list>::build_expression(np->get_children()[0], context)
-								));
-							}
-						}, *np->get_children()[0]->get_type_id());
+					CHECK_TO_STRING_OPERATION();
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
 					CHECK_INDEX_OPERATION(string, array);
@@ -1065,6 +1068,7 @@ namespace stork {
 #undef CHECK_COMPARISON_OPERATION
 #undef CHECK_TERNARY_OPERATION
 #undef CHECK_BINARY_OPERATION
+#undef CHECK_TO_STRING_OPERATION
 #undef CHECK_SIZE_OPERATION
 #undef CHECK_UNARY_OPERATION
 #undef CHECK_FUNCTION
