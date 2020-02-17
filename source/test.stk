@@ -27,24 +27,21 @@ function number less(number x, number y) {
 	return x < y;
 }
 
-public function number test() {
-	number[] arr = {1, 7, 3, 5, 1, 6, 8, 2, 6, 78, 3242, 65, 13432, 4, 56, 1341, 6533, 2, 5, 65};
+public function void main() {
+	number[] arr;
 	
-	quicksort(&arr, 0, sizeof(arr), greater);
-	
-	for (number i = 1 ; i < sizeof(arr); ++i) {
-		if (greater(arr[i], arr[i-1])) {
-			return 0;
-		}
+	for (number i = 0; i < 100; ++i) {
+		arr[sizeof(arr)] = rnd(100);
 	}
+	
+	trace(tostring(arr));
 	
 	quicksort(&arr, 0, sizeof(arr), less);
 	
-	for (number i = 1 ; i < sizeof(arr); ++i) {
-		if (less(arr[i], arr[i-1])) {
-			return 0;
-		}
-	}
-
-	return 1;
+	trace(tostring(arr));
+	
+	quicksort(&arr, 0, sizeof(arr), greater);
+	
+	
+	trace(tostring(arr));
 }

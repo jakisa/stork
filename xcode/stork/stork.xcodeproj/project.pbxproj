@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D1208AF323E4454100EAE160 /* statement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D1208AF123E4454100EAE160 /* statement.cpp */; };
+		D122A36623FB1EC3001337ED /* standard_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D122A36423FB1EC3001337ED /* standard_functions.cpp */; };
 		D12DE97023F9BF680061DCAF /* module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D12DE96E23F9BF680061DCAF /* module.cpp */; };
 		D15C4F5823D08F1C007FA82D /* expression_tree_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D15C4F5623D08F1C007FA82D /* expression_tree_parser.cpp */; };
 		D16A341423CC8A72001AB516 /* push_back_stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D16A340A23CC8A72001AB516 /* push_back_stream.cpp */; };
@@ -40,6 +41,8 @@
 /* Begin PBXFileReference section */
 		D1208AF123E4454100EAE160 /* statement.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = statement.cpp; sourceTree = "<group>"; };
 		D1208AF223E4454100EAE160 /* statement.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = statement.hpp; sourceTree = "<group>"; };
+		D122A36423FB1EC3001337ED /* standard_functions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = standard_functions.cpp; sourceTree = "<group>"; };
+		D122A36523FB1EC3001337ED /* standard_functions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = standard_functions.hpp; sourceTree = "<group>"; };
 		D12DE96E23F9BF680061DCAF /* module.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = module.cpp; sourceTree = "<group>"; };
 		D12DE96F23F9BF680061DCAF /* module.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = module.hpp; sourceTree = "<group>"; };
 		D12DE97123FB0ED60061DCAF /* test.stk */ = {isa = PBXFileReference; lastKnownFileType = text; path = test.stk; sourceTree = "<group>"; };
@@ -139,6 +142,8 @@
 				D12DE96E23F9BF680061DCAF /* module.cpp */,
 				D12DE96F23F9BF680061DCAF /* module.hpp */,
 				D12DE97123FB0ED60061DCAF /* test.stk */,
+				D122A36423FB1EC3001337ED /* standard_functions.cpp */,
+				D122A36523FB1EC3001337ED /* standard_functions.hpp */,
 			);
 			name = source;
 			path = ../../source;
@@ -214,6 +219,7 @@
 				D16A342923CCA134001AB516 /* variable.cpp in Sources */,
 				D16A341523CC8A72001AB516 /* tokenizer.cpp in Sources */,
 				D16A343323CD2866001AB516 /* types.cpp in Sources */,
+				D122A36623FB1EC3001337ED /* standard_functions.cpp in Sources */,
 				D1208AF323E4454100EAE160 /* statement.cpp in Sources */,
 				D16A342A23CCA134001AB516 /* expression.cpp in Sources */,
 				D1805E0E23ECAD6400C5BD7F /* compiler.cpp in Sources */,

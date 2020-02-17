@@ -1,5 +1,6 @@
 #include <iostream>
 #include "module.hpp"
+#include "standard_functions.hpp"
 
 int main() {
 	std::string path = __FILE__;
@@ -11,14 +12,16 @@ int main() {
 	
 	module m;
 	
+	add_standard_functions(m);
+	
 	m.add_external_function("greater", std::function<number(number, number)>([](number x, number y){
 		return x > y;
 	}));
 	
-	auto test = m.create_public_function_caller<number>("test");
+	auto s_main = m.create_public_function_caller<void>("main");
 	
 	if (m.try_load(path.c_str(), &std::cerr)) {
-		std::cout << test() << std::endl;
+		s_main();
 	}
 	
 	return 0;

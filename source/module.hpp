@@ -29,7 +29,7 @@ namespace stork {
 						std::tuple_cat(
 							std::move(t),
 							std::tuple<Left0>(
-								ctx.local(
+								*ctx.local(
 									-1 - int(sizeof...(Unpacked))
 								)->static_pointer_downcast<lstring>()->value
 							)
