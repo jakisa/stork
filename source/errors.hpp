@@ -34,7 +34,7 @@ namespace stork {
 	error already_declared_error(std::string_view name, size_t line_number, size_t char_index);
 
 	using get_character = std::function<int()>;
-	void format_error(const error& err, get_character source, std::ostream& output);
+	void format_error(const error& err, const get_character& source, std::ostream& output);
 	
 	
 	class runtime_error: public std::exception {
@@ -47,6 +47,15 @@ namespace stork {
 	};
 	
 	void runtime_assertion(bool b, const char* message);
+	
+	class file_not_found: public std::exception {
+	private:
+		std::string _message;
+	public:
+		file_not_found(std::string message) noexcept;
+		
+		const char* what() const noexcept override;
+	};
 };
 
 #endif /* errors_hpp */

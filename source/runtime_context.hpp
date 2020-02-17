@@ -43,7 +43,7 @@ namespace stork {
 		variable_ptr& local(int idx);
 
 		const function& get_function(int idx) const;
-		const function& get_public_function(const std::string& name) const;
+		const function& get_public_function(const char* name) const;
 
 		scope enter_scope();
 		void push(variable_ptr v);

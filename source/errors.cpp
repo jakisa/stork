@@ -98,7 +98,7 @@ namespace stork {
 		return semantic_error(message, line_number, char_index);
 	}
 
-	void format_error(const error& err, get_character source, std::ostream& output) {
+	void format_error(const error& err, const get_character& source, std::ostream& output) {
 		output << "(" << (err.line_number() + 1) << ") " << err.what() << std::endl;
 		
 		size_t char_index = 0;
@@ -145,5 +145,14 @@ namespace stork {
 		if (!b) {
 			throw runtime_error(message);
 		}
+	}
+	
+	file_not_found::file_not_found(std::string message) noexcept:
+		_message(std::move(message))
+	{
+	}
+		
+	const char* file_not_found::what() const noexcept {
+		return _message.c_str();
 	}
 }

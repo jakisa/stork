@@ -6,6 +6,7 @@
 #include "tokenizer.hpp"
 #include "runtime_context.hpp"
 #include "helpers.hpp"
+#include "push_back_stream.hpp"
 
 namespace stork {
 	namespace {
@@ -481,9 +482,27 @@ namespace stork {
 		return create_shared_block_statement(std::move(block));
 	}
 	
-	runtime_context compile(tokens_iterator& it) {
+	runtime_context compile(tokens_iterator& it, const std::vector<std::pair<std::string, function> >& external_functions) {
 		compiler_context ctx;
 		
+		for (const std::pair<std::string, function>& p : external_functions) {
+			get_character get = [i = 0, &p]() mutable {
+				if (i < p.first.size()){
+					return int(p.first[i++]);
+				} else {
+					return -1;
+				}
+			};
+			
+			push_back_stream stream(&get);
+			
+			tokens_iterator function_it(stream);
+		
+			function_declaration decl = parse_function_declaration(ctx, function_it);
+			
+			ctx.create_function(decl.name, decl.type_id);
+		}
+
 		std::vector<expression<lvalue>::ptr> initializers;
 		
 		std::vector<incomplete_function> incomplete_functions;
@@ -505,7 +524,10 @@ namespace stork {
 				case reserved_token::kw_function:
 					incomplete_functions.emplace_back(ctx, it);
 					if (public_function) {
-						public_functions.emplace(incomplete_functions.back().get_name(), incomplete_functions.size() - 1);
+						public_functions.emplace(
+							incomplete_functions.back().get_name(),
+							external_functions.size() + incomplete_functions.size() - 1
+						);
 					}
 					break;
 				default:
@@ -518,7 +540,12 @@ namespace stork {
 		}
 		
 		std::vector<function> functions;
-		functions.reserve(incomplete_functions.size());
+		
+		functions.reserve(external_functions.size() + incomplete_functions.size());
+		
+		for (const std::pair<std::string, function>& p : external_functions) {
+			functions.emplace_back(p.second);
+		}
 		
 		for (incomplete_function& f : incomplete_functions) {
 			functions.emplace_back(f.compile(ctx));

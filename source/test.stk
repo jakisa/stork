@@ -1,0 +1,50 @@
+function void swap(number& x, number& y) {
+	number tmp = x;
+	x = y;
+	y = tmp;
+}
+
+function void quicksort(number[]& arr, number begin, number end, number(number, number) comp) {
+	if (end - begin < 2)
+		return;
+	
+	number pivot = arr[end-1];
+
+	number i = begin;
+	
+	for (number j = begin; j < end-1; ++j)
+		if (comp(arr[j], pivot))
+			swap(&arr[i++], &arr[j]);
+	
+	swap (&arr[i], &arr[end-1]);
+
+	quicksort(&arr, begin, i, comp);
+	quicksort(&arr, i+1, end, comp);
+}
+
+
+function number less(number x, number y) {
+	return x < y;
+}
+
+public function number test() {
+	number[] arr = {1, 7, 3, 5, 1, 6, 8, 2, 6, 78, 3242, 65, 13432, 4, 56, 1341, 6533, 2, 5, 65};
+	
+	quicksort(&arr, 0, sizeof(arr), greater);
+	
+	for (number i = 1 ; i < sizeof(arr); ++i) {
+		if (greater(arr[i], arr[i-1])) {
+			return 0;
+		}
+	}
+	
+	quicksort(&arr, 0, sizeof(arr), less);
+	
+	for (number i = 1 ; i < sizeof(arr); ++i) {
+		if (less(arr[i], arr[i-1])) {
+			return 0;
+		}
+	}
+
+	return 1;
+}

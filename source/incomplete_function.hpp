@@ -12,13 +12,19 @@ namespace stork {
 	class tokens_iterator;
 	using function = std::function<void(runtime_context&)>;
 
+	struct function_declaration{
+		std::string name;
+		type_handle type_id;
+		std::vector<std::string> params;
+	};
+	
+	function_declaration parse_function_declaration(compiler_context& ctx, tokens_iterator& it);
+
 	class incomplete_function {
 	private:
-		std::string _name;
+		function_declaration _decl;
 		std::deque<token> _tokens;
 		size_t _index;
-		std::vector<std::string> _params;
-		type_handle _ft;
 	public:
 		incomplete_function(compiler_context& ctx, tokens_iterator& it);
 		

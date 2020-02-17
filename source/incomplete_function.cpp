@@ -5,14 +5,14 @@
 #include "tokenizer.hpp"
 
 namespace stork {
-	incomplete_function::incomplete_function(compiler_context& ctx, tokens_iterator& it) {
+	function_declaration parse_function_declaration(compiler_context& ctx, tokens_iterator& it) {
+		function_declaration ret;
+		
 		parse_token_value(ctx, it, reserved_token::kw_function);
 		
 		function_type ft;
-		
 		ft.return_type_id = parse_type(ctx, it);
-		
-		_name = parse_declaration_name(ctx, it);
+		ret.name = parse_declaration_name(ctx, it);
 		
 		{
 			auto _ = ctx.function();
@@ -20,7 +20,7 @@ namespace stork {
 			parse_token_value(ctx, it, reserved_token::open_round);
 			
 			while(!it->has_value(reserved_token::close_round)) {
-				if (!_params.empty()) {
+				if (!ret.params.empty()) {
 					parse_token_value(ctx, it, reserved_token::comma);
 				}
 				
@@ -33,14 +33,21 @@ namespace stork {
 				ft.param_type_id.push_back({t, byref});
 				
 				if (!it->has_value(reserved_token::close_round) && !it->has_value(reserved_token::comma)) {
-					_params.push_back(parse_declaration_name(ctx, it));
+					ret.params.push_back(parse_declaration_name(ctx, it));
 				} else {
-					_params.push_back("@"+std::to_string(_params.size()));
+					ret.params.push_back("@"+std::to_string(ret.params.size()));
 				}
 			}
 			++it;
-			
 		}
+		
+		ret.type_id = ctx.get_handle(ft);
+		
+		return ret;
+	}
+
+	incomplete_function::incomplete_function(compiler_context& ctx, tokens_iterator& it) {
+		_decl = parse_function_declaration(ctx, it);
 		
 		_tokens.push_back(*it);
 		
@@ -65,29 +72,26 @@ namespace stork {
 			throw unexpected_syntax_error("end of file", it->get_line_number(), it->get_char_index());
 		}
 		
-		_ft = ctx.get_handle(ft);
-		
-		ctx.create_function(_name, _ft);
+		ctx.create_function(_decl.name, _decl.type_id);
 	}
 	
 	incomplete_function::incomplete_function(incomplete_function&& orig) noexcept:
 		_tokens(std::move(orig._tokens)),
-		_params(std::move(orig._params)),
-		_ft(orig._ft)
+		_decl(std::move(orig._decl))
 	{
 	}
 	
 	const std::string& incomplete_function::get_name() const {
-		return _name;
+		return _decl.name;
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {
 		auto _ = ctx.function();
 		
-		const function_type* ft = std::get_if<function_type>(_ft);
+		const function_type* ft = std::get_if<function_type>(_decl.type_id);
 		
-		for (int i = 0; i < int(_params.size()); ++i) {
-			ctx.create_param(std::move(_params[i]), ft->param_type_id[i].type_id);
+		for (int i = 0; i < int(_decl.params.size()); ++i) {
+			ctx.create_param(std::move(_decl.params[i]), ft->param_type_id[i].type_id);
 		}
 		
 		tokens_iterator it(_tokens);

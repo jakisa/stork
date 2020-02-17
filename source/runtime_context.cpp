@@ -41,7 +41,7 @@ namespace stork {
 		return _functions[idx];
 	}
 	
-	const function& runtime_context::get_public_function(const std::string& name) const{
+	const function& runtime_context::get_public_function(const char* name) const{
 		return _functions[_public_functions.find(name)->second];
 	}
 	

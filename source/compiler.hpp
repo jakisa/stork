@@ -5,12 +5,17 @@
 #include "tokens.hpp"
 #include "statement.hpp"
 
+#include <vector>
+#include <functional>
+
 namespace stork {
 	class compiler_context;
 	class tokens_iterator;
 	class runtime_context;
+	
+	using function = std::function<void(runtime_context&)>;
 
-	runtime_context compile(tokens_iterator& it);
+	runtime_context compile(tokens_iterator& it, const std::vector<std::pair<std::string, function> >& external_functions);
 	
 	type_handle parse_type(compiler_context& ctx, tokens_iterator& it);
 
