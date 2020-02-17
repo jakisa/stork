@@ -6,8 +6,6 @@ int main() {
 	std::string path = __FILE__;
 	path = path.substr(0, path.find_last_of("/\\") + 1) + "test.stk";
 	
-	std::cout << path << std::endl;
-
 	using namespace stork;
 	
 	module m;

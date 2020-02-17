@@ -403,14 +403,32 @@ namespace stork {
 			}
 		};
 		
-		template<typename R, typename T>
+		template<typename R, typename A, typename T>
 		class index_expression: public expression<R>{
 		private:
-			expression<larray>::ptr _expr1;
+			typename expression<A>::ptr _expr1;
 			expression<number>::ptr _expr2;
 			expression<lvalue>::ptr _init;
+			
+			static array& value(A& arr){
+				if constexpr(std::is_same<larray, A>::value) {
+					return arr->value;
+				} else {
+					static_assert(std::is_same<array, A>::value);
+					return arr;
+				}
+			}
+			
+			static auto to_lvalue_impl(lvalue v) {
+				if constexpr(std::is_same<larray, A>::value) {
+					return v->static_pointer_downcast<T>();
+				} else {
+					static_assert(std::is_same<array, A>::value);
+					return std::static_pointer_cast<variable_impl<T> >(v);
+				}
+			}
 		public:
-			index_expression(expression<larray>::ptr expr1, expression<number>::ptr expr2, expression<lvalue>::ptr init):
+			index_expression(typename expression<A>::ptr expr1, expression<number>::ptr expr2, expression<lvalue>::ptr init):
 				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2)),
 				_init(std::move(init))
@@ -418,39 +436,57 @@ namespace stork {
 			}
 		
 			R evaluate(runtime_context& context) const override {
-				larray arr = _expr1->evaluate(context);
+				A arr = _expr1->evaluate(context);
 				int idx = int(_expr2->evaluate(context));
 				
 				runtime_assertion(idx >= 0, "Negative index is invalid");
 				
-				while (idx >= arr->value.size()) {
-					arr->value.push_back(_init->evaluate(context));
+				while (idx >= value(arr).size()) {
+					value(arr).push_back(_init->evaluate(context));
 				}
 
 				return convert<R>(
-					arr->value[idx]->template static_pointer_downcast<T>()
+					to_lvalue_impl(value(arr)[idx])
 				);
 			}
 		};
 		
 		
-		template<typename R, typename T>
+		template<typename R, typename A, typename T>
 		class member_expression: public expression<R>{
 		private:
-			expression<ltuple>::ptr _expr;
+			typename expression<A>::ptr _expr;
 			size_t _idx;
+			
+			static tuple& value(A& arr){
+				if constexpr(std::is_same<ltuple, A>::value) {
+					return arr->value;
+				} else {
+					static_assert(std::is_same<tuple, A>::value);
+					return arr;
+				}
+			}
+			
+			static auto to_lvalue_impl(lvalue v) {
+				if constexpr(std::is_same<larray, A>::value) {
+					return v->static_pointer_downcast<T>();
+				} else {
+					static_assert(std::is_same<array, A>::value);
+					return std::static_pointer_cast<variable_impl<T> >(v);
+				}
+			}
 		public:
-			member_expression(expression<ltuple>::ptr expr, size_t idx):
+			member_expression(typename expression<A>::ptr expr, size_t idx):
 				_expr(std::move(expr)),
 				_idx(idx)
 			{
 			}
 		
 			R evaluate(runtime_context& context) const override {
-				ltuple tup = _expr->evaluate(context);
+				A tup = _expr->evaluate(context);
 				
 				return convert<R>(
-					tup->value[_idx]->template static_pointer_downcast<T>()
+					to_lvalue_impl(value(tup)[_idx])
 				);
 			}
 			
@@ -485,9 +521,9 @@ namespace stork {
 				if constexpr (std::is_same<R, void>::value) {
 					context.call(f, std::move(params));
 				} else {
-					return convert<R>(
-						context.call(f, std::move(params))->template static_pointer_downcast<T>()
-					);
+					return convert<R>(std::move(
+						std::static_pointer_cast<variable_impl<T> >(context.call(f, std::move(params)))->value
+					));
 				}
 			}
 		};
@@ -658,22 +694,22 @@ namespace stork {
 				);\
 			}
 
-#define CHECK_INDEX_OPERATION(T)\
+#define CHECK_INDEX_OPERATION(T, A)\
 		case node_operation::index:\
 			{\
 				const tuple_type* tt = std::get_if<tuple_type>(np->get_children()[0]->get_type_id());\
 				if (tt) {\
 					return expression_ptr(\
-						std::make_unique<member_expression<R, T> >(\
-							expression_builder<ltuple>::build_expression(np->get_children()[0], context),\
+						std::make_unique<member_expression<R, A, T> >(\
+							expression_builder<A>::build_expression(np->get_children()[0], context),\
 							size_t(np->get_children()[1]->get_number())\
 						)\
 					);\
 				} else {\
 					const array_type* at = std::get_if<array_type>(np->get_children()[0]->get_type_id());\
 					return expression_ptr(\
-						std::make_unique<index_expression<R, T> >(\
-							expression_builder<larray>::build_expression(np->get_children()[0], context),\
+						std::make_unique<index_expression<R, A, T> >(\
+							expression_builder<A>::build_expression(np->get_children()[0], context),\
 							expression_builder<number>::build_expression(np->get_children()[1], context),\
 							build_default_initialization(at->inner_type_id) \
 						)\
@@ -761,8 +797,9 @@ namespace stork {
 					CHECK_BINARY_OPERATION(comma, void, number);
 					CHECK_BINARY_OPERATION(land, number, number);
 					CHECK_BINARY_OPERATION(lor, number, number);
+					CHECK_INDEX_OPERATION(number, array);
 					CHECK_TERNARY_OPERATION(ternary, number, number, number);
-					CHECK_CALL_OPERATION(lnumber);
+					CHECK_CALL_OPERATION(number);
 					default:
 						throw expression_builder_error();
 				}
@@ -787,7 +824,7 @@ namespace stork {
 					CHECK_BINARY_OPERATION(bsl_assign, lnumber, number);
 					CHECK_BINARY_OPERATION(bsr_assign, lnumber, number);
 					CHECK_BINARY_OPERATION(comma, void, lnumber);
-					CHECK_INDEX_OPERATION(lnumber);
+					CHECK_INDEX_OPERATION(lnumber, larray);
 					CHECK_TERNARY_OPERATION(ternary, number, lnumber, lnumber);
 					default:
 						throw expression_builder_error();
@@ -849,8 +886,9 @@ namespace stork {
 						}, *np->get_children()[0]->get_type_id());
 					CHECK_BINARY_OPERATION(concat, string, string);
 					CHECK_BINARY_OPERATION(comma, void, string);
+					CHECK_INDEX_OPERATION(string, array);
 					CHECK_TERNARY_OPERATION(ternary, number, string, string);
-					CHECK_CALL_OPERATION(lstring);
+					CHECK_CALL_OPERATION(string);
 					default:
 						throw expression_builder_error();
 				}
@@ -863,7 +901,7 @@ namespace stork {
 					CHECK_BINARY_OPERATION(assign, lstring, string);
 					CHECK_BINARY_OPERATION(concat_assign, lstring, string);
 					CHECK_BINARY_OPERATION(comma, void, lstring);
-					CHECK_INDEX_OPERATION(lstring);
+					CHECK_INDEX_OPERATION(lstring, larray);
 					CHECK_TERNARY_OPERATION(ternary, number, lstring, lstring);
 					default:
 						throw expression_builder_error();
@@ -875,8 +913,9 @@ namespace stork {
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, array);
+					CHECK_INDEX_OPERATION(array, array);
 					CHECK_TERNARY_OPERATION(ternary, number, array, array);
-					CHECK_CALL_OPERATION(larray);
+					CHECK_CALL_OPERATION(array);
 					default:
 						throw expression_builder_error();
 				}
@@ -888,7 +927,7 @@ namespace stork {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, larray, array);
 					CHECK_BINARY_OPERATION(comma, void, larray);
-					CHECK_INDEX_OPERATION(larray);
+					CHECK_INDEX_OPERATION(larray, larray);
 					CHECK_TERNARY_OPERATION(ternary, number, larray, larray);
 					default:
 						throw expression_builder_error();
@@ -901,8 +940,9 @@ namespace stork {
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, function);
+					CHECK_INDEX_OPERATION(function, array);
 					CHECK_TERNARY_OPERATION(ternary, number, function, function);
-					CHECK_CALL_OPERATION(lfunction);
+					CHECK_CALL_OPERATION(function);
 					default:
 						throw expression_builder_error();
 				}
@@ -914,7 +954,7 @@ namespace stork {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, lfunction, function);
 					CHECK_BINARY_OPERATION(comma, void, lfunction);
-					CHECK_INDEX_OPERATION(lfunction);
+					CHECK_INDEX_OPERATION(lfunction, larray);
 					CHECK_TERNARY_OPERATION(ternary, number, lfunction, lfunction);
 					default:
 						throw expression_builder_error();
@@ -926,9 +966,9 @@ namespace stork {
 				
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(comma, void, tuple);
+					CHECK_INDEX_OPERATION(tuple, array);
 					CHECK_TERNARY_OPERATION(ternary, number, tuple, tuple);
-					CHECK_INDEX_OPERATION(ltuple);
-					CHECK_CALL_OPERATION(ltuple);
+					CHECK_CALL_OPERATION(tuple);
 					default:
 						throw expression_builder_error();
 				}
@@ -940,7 +980,7 @@ namespace stork {
 				switch (std::get<node_operation>(np->get_value())) {
 					CHECK_BINARY_OPERATION(assign, ltuple, tuple);
 					CHECK_BINARY_OPERATION(comma, void, ltuple);
-					CHECK_INDEX_OPERATION(ltuple);
+					CHECK_INDEX_OPERATION(ltuple, larray);
 					CHECK_TERNARY_OPERATION(ternary, number, ltuple, ltuple);
 					CHECK_CALL_OPERATION(ltuple);
 					default:

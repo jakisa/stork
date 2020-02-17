@@ -188,10 +188,7 @@ namespace stork {
 						_lvalue = _children.back()->is_lvalue();
 						break;
 					case node_operation::index:
-						if (!_children[0]->is_lvalue()) {
-							throw semantic_error("Only lvalues are indexable", _line_number, _char_index);
-						}
-                        _lvalue = true;
+						_lvalue = _children[0]->is_lvalue();
 						if (const array_type* at = std::get_if<array_type>(_children[0]->get_type_id())) {
 							_type_id = at->inner_type_id;
 						} else if (const tuple_type* tt = std::get_if<tuple_type>(_children[0]->get_type_id())) {
