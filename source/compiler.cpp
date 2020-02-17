@@ -482,7 +482,11 @@ namespace stork {
 		return create_shared_block_statement(std::move(block));
 	}
 	
-	runtime_context compile(tokens_iterator& it, const std::vector<std::pair<std::string, function> >& external_functions) {
+	runtime_context compile(
+		tokens_iterator& it,
+		const std::vector<std::pair<std::string, function> >& external_functions,
+		std::vector<std::string> public_declarations
+	) {
 		compiler_context ctx;
 		
 		for (const std::pair<std::string, function>& p : external_functions) {
@@ -501,6 +505,26 @@ namespace stork {
 			function_declaration decl = parse_function_declaration(ctx, function_it);
 			
 			ctx.create_function(decl.name, decl.type_id);
+		}
+		
+		std::unordered_map<std::string, type_handle> public_function_types;
+		
+		for (const std::string& f : public_declarations) {
+			get_character get = [i = 0, &f]() mutable {
+				if (i < f.size()){
+					return int(f[i++]);
+				} else {
+					return -1;
+				}
+			};
+			
+			push_back_stream stream(&get);
+			
+			tokens_iterator function_it(stream);
+		
+			function_declaration decl = parse_function_declaration(ctx, function_it);
+			
+			public_function_types.emplace(decl.name, decl.type_id);
 		}
 
 		std::vector<expression<lvalue>::ptr> initializers;
@@ -522,14 +546,31 @@ namespace stork {
 						throw unexpected_syntax(it);
 					}
 				case reserved_token::kw_function:
-					incomplete_functions.emplace_back(ctx, it);
-					if (public_function) {
-						public_functions.emplace(
-							incomplete_functions.back().get_name(),
-							external_functions.size() + incomplete_functions.size() - 1
-						);
+					{
+						size_t line_number = it->get_line_number();
+						size_t char_index = it->get_char_index();
+						const incomplete_function& f = incomplete_functions.emplace_back(ctx, it);
+						
+						if (public_function) {
+							auto it = public_function_types.find(f.get_decl().name);
+						
+							if (it != public_function_types.end() && it->second != f.get_decl().type_id) {
+								throw semantic_error(
+									"Public function doesn't match it's declaration " + std::to_string(it->second),
+									line_number,
+									char_index
+								);
+							} else {
+								public_function_types.erase(it);
+							}
+						
+							public_functions.emplace(
+								f.get_decl().name,
+								external_functions.size() + incomplete_functions.size() - 1
+							);
+						}
+						break;
 					}
-					break;
 				default:
 					for (expression<lvalue>::ptr& expr : compile_variable_declaration(ctx, it)) {
 						initializers.push_back(std::move(expr));
@@ -537,6 +578,14 @@ namespace stork {
 					parse_token_value(ctx, it, reserved_token::semicolon);
 					break;
 			}
+		}
+		
+		if (!public_function_types.empty()) {
+			throw semantic_error(
+				"Public function '" + public_function_types.begin()->first + "' is not defined.",
+				it->get_line_number(),
+				it->get_char_index()
+			);
 		}
 		
 		std::vector<function> functions;

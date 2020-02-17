@@ -81,8 +81,8 @@ namespace stork {
 	{
 	}
 	
-	const std::string& incomplete_function::get_name() const {
-		return _decl.name;
+	const function_declaration& incomplete_function::get_decl() const {
+		return _decl;
 	}
 	
 	function incomplete_function::compile(compiler_context& ctx) {

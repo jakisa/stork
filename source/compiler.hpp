@@ -15,7 +15,11 @@ namespace stork {
 	
 	using function = std::function<void(runtime_context&)>;
 
-	runtime_context compile(tokens_iterator& it, const std::vector<std::pair<std::string, function> >& external_functions);
+	runtime_context compile(
+		tokens_iterator& it,
+		const std::vector<std::pair<std::string, function> >& external_functions,
+		std::vector<std::string> public_declarations
+	);
 	
 	type_handle parse_type(compiler_context& ctx, tokens_iterator& it);
 

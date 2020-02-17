@@ -122,7 +122,7 @@ namespace stork {
 		};
 		
 		template<typename R, typename... Args>
-		std::string create_external_function_declaration(const char* name, const std::function<R(Args...)>& f) {
+		std::string create_function_declaration(const char* name) {
 			if constexpr(sizeof...(Args) == 0) {
 				return std::string("function ") + retval_declaration<R>::result() + " " + name + "()";
 			} else {
@@ -151,6 +151,7 @@ namespace stork {
 	private:
 		std::unique_ptr<module_impl> _impl;
 		void add_external_function_impl(std::string declaration, function f);
+		void add_public_function_declaration(std::string declaration);
 		runtime_context* get_runtime_context();
 	public:
 		module();
@@ -158,23 +159,24 @@ namespace stork {
 		template<typename R, typename... Args>
 		void add_external_function(const char* name, std::function<R(Args...)> f) {
 			add_external_function_impl(
-				details::create_external_function_declaration(name, f),
+				details::create_function_declaration<R, Args...>(name),
 				details::create_external_function(std::move(f))
 			);
 		}
 		
 		template<typename R, typename... Args>
 		auto create_public_function_caller(const std::string& name) {
+			add_public_function_declaration(details::create_function_declaration<R, Args...>(name.c_str()));
 			return [this, name](Args... args){
 				if constexpr(std::is_same<R, void>::value) {
 					get_runtime_context()->call(
 						get_runtime_context()->get_public_function(name.c_str()),
-						{to_variable(args)...}
+						{details::to_variable(args)...}
 					);
 				} else {
 					return get_runtime_context()->call(
 						get_runtime_context()->get_public_function(name.c_str()),
-						{to_variable(args)...}
+						{details::to_variable(args)...}
 					)->template static_pointer_downcast<std::shared_ptr<variable_impl<R> > >()->value;
 				}
 			};

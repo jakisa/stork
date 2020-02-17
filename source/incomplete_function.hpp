@@ -30,7 +30,7 @@ namespace stork {
 		
 		incomplete_function(incomplete_function&& orig) noexcept;
 		
-		const std::string& get_name() const;
+		const function_declaration& get_decl() const;
 		
 		function compile(compiler_context& ctx);
 	};
