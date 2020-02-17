@@ -31,7 +31,12 @@ namespace stork {
 					++it;
 				}
 				ft.param_type_id.push_back({t, byref});
-				_params.push_back(parse_declaration_name(ctx, it));
+				
+				if (!it->has_value(reserved_token::close_round) && !it->has_value(reserved_token::comma)) {
+					_params.push_back(parse_declaration_name(ctx, it));
+				} else {
+					_params.push_back("@"+std::to_string(_params.size()));
+				}
 			}
 			++it;
 			
