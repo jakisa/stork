@@ -22,6 +22,10 @@ function void quicksort(number[]& arr, number begin, number end, number(number, 
 	quicksort(&arr, i+1, end, comp);
 }
 
+function void sort(number[]& arr, number(number, number) comp) {
+	quicksort(&arr, 0, sizeof(arr), comp);
+}
+
 
 function number less(number x, number y) {
 	return x < y;
@@ -36,12 +40,11 @@ public function void main() {
 	
 	trace(tostring(arr));
 	
-	quicksort(&arr, 0, sizeof(arr), less);
+	sort(&arr, less);
 	
 	trace(tostring(arr));
 	
-	quicksort(&arr, 0, sizeof(arr), greater);
-	
+	sort(&arr, greater);
 	
 	trace(tostring(arr));
 }
