@@ -10,7 +10,7 @@ namespace stork {
 	class tokens_iterator;
 	class runtime_context;
 
-	runtime_context compile(compiler_context& ctx, tokens_iterator& it);
+	runtime_context compile(tokens_iterator& it);
 	
 	type_handle parse_type(compiler_context& ctx, tokens_iterator& it);
 

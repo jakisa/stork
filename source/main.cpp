@@ -8,6 +8,7 @@
 #include "push_back_stream.hpp"
 #include "compiler.hpp"
 #include <stdlib.h>
+#include "module.hpp"
 
 const char* stork_code = R"STORK_CODE(
 
@@ -140,7 +141,11 @@ double my_div(double x, double y) {
 int main() {
 	using namespace stork;
 	
-	compiler_context ctx;
+	module m;
+	m.add_external_function("add", std::function<double(double, double)>(&my_add));
+	m.add_external_function("sub", std::function<double(double, double)>(&my_sub));
+	m.add_external_function("mul", std::function<double(double, double)>(&my_mul));
+	m.add_external_function("div", std::function<double(double, double)>(&my_div));
 	
 	const char* code = stork_code;
 	
@@ -157,7 +162,7 @@ int main() {
 	tokens_iterator it(stream);
 	
 	try {
-		runtime_context rctx = compile(ctx, it);
+		runtime_context rctx = compile(it);
 
 		std::cout <<
 			*rctx.call(

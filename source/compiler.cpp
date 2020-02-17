@@ -481,10 +481,8 @@ namespace stork {
 		return create_shared_block_statement(std::move(block));
 	}
 	
-	runtime_context compile(compiler_context& ctx, tokens_iterator& it) {
-		if (!std::holds_alternative<reserved_token>(it->get_value())) {
-			throw unexpected_syntax(it);
-		}
+	runtime_context compile(tokens_iterator& it) {
+		compiler_context ctx;
 		
 		std::vector<expression<lvalue>::ptr> initializers;
 		
@@ -492,6 +490,10 @@ namespace stork {
 		std::unordered_map<std::string, size_t> public_functions;
 		
 		while (it) {
+			if (!std::holds_alternative<reserved_token>(it->get_value())) {
+				throw unexpected_syntax(it);
+			}
+		
 			bool public_function = false;
 			
 			switch (it->get_reserved_token()) {
