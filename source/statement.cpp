@@ -180,9 +180,7 @@ namespace stork {
 					context.push(decl->evaluate(context));
 				}
 				
-				flow ret = if_statement::execute(context);
-				
-				return ret;
+				return if_statement::execute(context);
 			}
 		};
 		
@@ -246,9 +244,7 @@ namespace stork {
 					context.push(decl->evaluate(context));
 				}
 				
-				flow ret = switch_statement::execute(context);
-				
-				return ret;
+				return switch_statement::execute(context);
 			}
 		};
 		
