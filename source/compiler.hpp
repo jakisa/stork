@@ -27,7 +27,7 @@ namespace stork {
 	
 	void parse_token_value(compiler_context& ctx, tokens_iterator& it, const token_value& value);
 	
-	shared_block_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id);
+	shared_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id);
 }
 
 #endif /* compiler_hpp */

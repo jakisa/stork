@@ -41,20 +41,8 @@ namespace stork {
 		virtual ~statement() = default;
 	};
 	
-	using statement_ptr=std::unique_ptr<statement>;
-	
-	class block_statement: public statement {
-	private:
-		std::vector<statement_ptr> _statements;
-		size_t _scope_vars;
-	public:
-		block_statement(std::vector<statement_ptr> statements);
-		
-		flow execute(runtime_context& context) override;
-	};
-	
-	using block_statement_ptr = std::unique_ptr<block_statement>;
-	using shared_block_statement_ptr = std::shared_ptr<block_statement>;
+	using statement_ptr = std::unique_ptr<statement>;
+	using shared_statement_ptr = std::shared_ptr<statement>;
 	
 	statement_ptr create_empty_statement();
 	
@@ -62,8 +50,8 @@ namespace stork {
 	
 	statement_ptr create_local_declaration_statement(std::vector<expression<lvalue>::ptr> decls);
 	
-	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements);
-	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements);
+	statement_ptr create_block_statement(std::vector<statement_ptr> statements);
+	shared_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements);
 	
 	statement_ptr create_break_statement(int break_level);
 	
@@ -76,7 +64,7 @@ namespace stork {
 	statement_ptr create_if_statement(
 		std::vector<expression<lvalue>::ptr> decls,
 		std::vector<expression<number>::ptr> exprs,
-		std::vector<block_statement_ptr> statements
+		std::vector<statement_ptr> statements
 	);
 	
 	statement_ptr create_switch_statement(
@@ -88,22 +76,22 @@ namespace stork {
 	);
 	
 	
-	statement_ptr create_while_statement(expression<number>::ptr expr, block_statement_ptr statement);
+	statement_ptr create_while_statement(expression<number>::ptr expr, statement_ptr statement);
 	
-	statement_ptr create_do_statement(expression<number>::ptr expr, block_statement_ptr statement);
+	statement_ptr create_do_statement(expression<number>::ptr expr, statement_ptr statement);
 	
 	statement_ptr create_for_statement(
 		expression<void>::ptr expr1,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
-		block_statement_ptr statement
+		statement_ptr statement
 	);
 	
 	statement_ptr create_for_statement(
 		std::vector<expression<lvalue>::ptr> decls,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
-		block_statement_ptr statement
+		statement_ptr statement
 	);
 }
 

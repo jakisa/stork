@@ -86,7 +86,7 @@ namespace stork {
 		
 		statement_ptr compile_simple_statement(compiler_context& ctx, tokens_iterator& it);
 		
-		block_statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
+		statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
 		
 		statement_ptr compile_for_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf);
 		
@@ -174,7 +174,7 @@ namespace stork {
 			expression<void>::ptr expr3 = build_void_expression(ctx, it);
 			parse_token_value(ctx, it, reserved_token::close_round);
 			
-			block_statement_ptr block = compile_block_statement(ctx, it, pf);
+			statement_ptr block = compile_block_statement(ctx, it, pf);
 			
 			if (!decls.empty()) {
 				return create_for_statement(std::move(decls), std::move(expr2), std::move(expr3), std::move(block));
@@ -190,7 +190,7 @@ namespace stork {
 			expression<number>::ptr expr = build_number_expression(ctx, it);
 			parse_token_value(ctx, it, reserved_token::close_round);
 			
-			block_statement_ptr block = compile_block_statement(ctx, it, pf);
+			statement_ptr block = compile_block_statement(ctx, it, pf);
 			
 			return create_while_statement(std::move(expr), std::move(block));
 		}
@@ -198,7 +198,7 @@ namespace stork {
 		statement_ptr compile_do_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
 			parse_token_value(ctx, it, reserved_token::kw_do);
 			
-			block_statement_ptr block = compile_block_statement(ctx, it, pf);
+			statement_ptr block = compile_block_statement(ctx, it, pf);
 			
 			parse_token_value(ctx, it, reserved_token::kw_while);
 			
@@ -223,7 +223,7 @@ namespace stork {
 			}
 			
 			std::vector<expression<number>::ptr> exprs;
-			std::vector<block_statement_ptr> stmts;
+			std::vector<statement_ptr> stmts;
 			
 			exprs.emplace_back(build_number_expression(ctx, it));
 			parse_token_value(ctx, it, reserved_token::close_round);
@@ -370,7 +370,7 @@ namespace stork {
 			return ret;
 		}
 		
-		block_statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
+		statement_ptr compile_block_statement(compiler_context& ctx, tokens_iterator& it, possible_flow pf) {
 			auto _ = ctx.scope();
 			std::vector<statement_ptr> block = compile_block_contents(ctx, it, pf);
 			return create_block_statement(std::move(block));
@@ -474,7 +474,7 @@ namespace stork {
 		return t;
 	}
 	
-	shared_block_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id) {
+	shared_statement_ptr compile_function_block(compiler_context& ctx, tokens_iterator& it, type_handle return_type_id) {
 		std::vector<statement_ptr> block = compile_block_contents(ctx, it, possible_flow::in_function(return_type_id));
 		if (return_type_id != type_registry::get_void_handle()) {
 			block.emplace_back(create_return_statement(build_default_initialization(return_type_id)));

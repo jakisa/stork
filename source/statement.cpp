@@ -38,362 +38,368 @@ namespace stork {
 		return _break_level == 1 ? flow::normal_flow() : flow::break_flow(_break_level-1);
 	}
 	
-	class empty_statement: public statement {
-	public:
-		empty_statement() = default;
+	namespace {
+		class empty_statement: public statement {
+		public:
+			empty_statement() = default;
+			
+			flow execute(runtime_context&) override {
+				return flow::normal_flow();
+			}
+		};
 		
-		flow execute(runtime_context&) override {
-			return flow::normal_flow();
-		}
-	};
-	
-	class simple_statement: public statement {
-	private:
-		expression<void>::ptr _expr;
-	public:
-		simple_statement(expression<void>::ptr expr):
-			_expr(std::move(expr))
-		{
-		}
+		class simple_statement: public statement {
+		private:
+			expression<void>::ptr _expr;
+		public:
+			simple_statement(expression<void>::ptr expr):
+				_expr(std::move(expr))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				_expr->evaluate(context);
+				return flow::normal_flow();
+			}
+		};
 		
-		flow execute(runtime_context& context) override {
-			_expr->evaluate(context);
-			return flow::normal_flow();
-		}
-	};
-	
-	block_statement::block_statement(std::vector<statement_ptr> statements):
-		_statements(std::move(statements))
-	{
+		class block_statement: public statement {
+		private:
+			std::vector<statement_ptr> _statements;
+			size_t _scope_vars;
+		public:
+			block_statement(std::vector<statement_ptr> statements):
+				_statements(std::move(statements))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				auto _ = context.enter_scope();
+				for (const statement_ptr& statement : _statements) {
+					switch (flow f = statement->execute(context); f.type()) {
+						case flow_type::f_normal:
+							break;
+						default:
+							return f;
+					}
+				}
+				return flow::normal_flow();
+			}
+		};
+			
+		class local_declaration_statement: public statement {
+		private:
+			std::vector<expression<lvalue>::ptr> _decls;
+		public:
+			local_declaration_statement(std::vector<expression<lvalue>::ptr> decls):
+				_decls(std::move(decls))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				for (const expression<lvalue>::ptr& decl : _decls) {
+					context.push(decl->evaluate(context));
+				}
+				return flow::normal_flow();
+			}
+		};
+			
+		class break_statement: public statement {
+		private:
+			int _break_level;
+		public:
+			break_statement(int break_level):
+				_break_level(break_level)
+			{
+			}
+			
+			flow execute(runtime_context&) override {
+				return flow::break_flow(_break_level);
+			}
+		};
+		
+		class continue_statement: public statement {
+		public:
+			continue_statement() = default;
+			
+			flow execute(runtime_context&) override {
+				return flow::continue_flow();
+			}
+		};
+		
+		class return_statement: public statement {
+		private:
+			expression<lvalue>::ptr _expr;
+		public:
+			return_statement(expression<lvalue>::ptr expr) :
+				_expr(std::move(expr))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				context.retval() = _expr->evaluate(context);
+				return flow::return_flow();
+			}
+		};
+		
+		class return_void_statement: public statement {
+		public:
+			return_void_statement() = default;
+			
+			flow execute(runtime_context&) override {
+				return flow::return_flow();
+			}
+		};
+		
+		class if_statement: public statement {
+		private:
+			std::vector<expression<number>::ptr> _exprs;
+			std::vector<statement_ptr> _statements;
+		public:
+			if_statement(std::vector<expression<number>::ptr> exprs, std::vector<statement_ptr> statements):
+				_exprs(std::move(exprs)),
+				_statements(std::move(statements))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				for (size_t i = 0; i < _exprs.size(); ++i) {
+					if (_exprs[i]->evaluate(context)) {
+						return _statements[i]->execute(context);
+					}
+				}
+				return _statements.back()->execute(context);
+			}
+		};
+		
+		class if_declare_statement: public if_statement {
+		private:
+			std::vector<expression<lvalue>::ptr> _decls;
+		public:
+			if_declare_statement(
+				std::vector<expression<lvalue>::ptr> decls,
+				std::vector<expression<number>::ptr> exprs,
+				std::vector<statement_ptr> statements
+			):
+				if_statement(std::move(exprs), std::move(statements)),
+				_decls(std::move(decls))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				auto _ = context.enter_scope();
+				
+				for (const expression<lvalue>::ptr& decl : _decls) {
+					context.push(decl->evaluate(context));
+				}
+				
+				flow ret = if_statement::execute(context);
+				
+				return ret;
+			}
+		};
+		
+		class switch_statement: public statement {
+		private:
+			expression<number>::ptr _expr;
+			std::vector<statement_ptr> _statements;
+			std::unordered_map<number, size_t> _cases;
+			size_t _dflt;
+		public:
+			switch_statement(
+				expression<number>::ptr expr,
+				std::vector<statement_ptr> statements,
+				std::unordered_map<number, size_t> cases,
+				size_t dflt
+			):
+				_expr(std::move(expr)),
+				_statements(std::move(statements)),
+				_cases(std::move(cases)),
+				_dflt(dflt)
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				auto it = _cases.find(_expr->evaluate(context));
+				for (size_t idx = (it == _cases.end() ? _dflt : it->second); idx < _statements.size(); ++idx) {
+					switch (flow f = _statements[idx]->execute(context); f.type()) {
+						case flow_type::f_normal:
+							break;
+						case flow_type::f_break:
+							return f.consume_break();
+						default:
+							return f;
+					}
+				}
+				
+				return flow::normal_flow();
+			}
+		};
+		
+		class switch_declare_statement: public switch_statement {
+		private:
+			std::vector<expression<lvalue>::ptr> _decls;
+		public:
+			switch_declare_statement(
+				std::vector<expression<lvalue>::ptr> decls,
+				expression<number>::ptr expr,
+				std::vector<statement_ptr> statements,
+				std::unordered_map<number, size_t> cases,
+				size_t dflt
+			):
+				_decls(std::move(decls)),
+				switch_statement(std::move(expr), std::move(statements), std::move(cases), dflt)
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				auto _ = context.enter_scope();
+			
+				for (const expression<lvalue>::ptr& decl : _decls) {
+					context.push(decl->evaluate(context));
+				}
+				
+				flow ret = switch_statement::execute(context);
+				
+				return ret;
+			}
+		};
+		
+		class while_statement: public statement {
+		private:
+			expression<number>::ptr _expr;
+			statement_ptr _statement;
+		public:
+			while_statement(expression<number>::ptr expr, statement_ptr statement):
+				_expr(std::move(expr)),
+				_statement(std::move(statement))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				while (_expr->evaluate(context)) {
+					switch (flow f = _statement->execute(context); f.type()) {
+						case flow_type::f_normal:
+						case flow_type::f_continue:
+							break;
+						case flow_type::f_break:
+							return f.consume_break();
+						case flow_type::f_return:
+							return f;
+					}
+				}
+				
+				return flow::normal_flow();
+			}
+		};
+		
+		class do_statement: public statement {
+		private:
+			expression<number>::ptr _expr;
+			statement_ptr _statement;
+		public:
+			do_statement(expression<number>::ptr expr, statement_ptr statement):
+				_expr(std::move(expr)),
+				_statement(std::move(statement))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				do {
+					switch (flow f = _statement->execute(context); f.type()) {
+						case flow_type::f_normal:
+						case flow_type::f_continue:
+							break;
+						case flow_type::f_break:
+							return f.consume_break();
+						case flow_type::f_return:
+							return f;
+					}
+				} while (_expr->evaluate(context));
+				
+				return flow::normal_flow();
+			}
+		};
+		
+		class for_statement: public statement {
+		private:
+			expression<void>::ptr _expr1;
+			expression<number>::ptr _expr2;
+			expression<void>::ptr _expr3;
+			statement_ptr _statement;
+		public:
+			for_statement(
+				expression<void>::ptr expr1,
+				expression<number>::ptr expr2,
+				expression<void>::ptr expr3,
+				statement_ptr statement
+			):
+				_expr1(std::move(expr1)),
+				_expr2(std::move(expr2)),
+				_expr3(std::move(expr3)),
+				_statement(std::move(statement))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				for (_expr1->evaluate(context); _expr2->evaluate(context); _expr3->evaluate(context)) {
+					switch (flow f = _statement->execute(context); f.type()) {
+						case flow_type::f_normal:
+						case flow_type::f_continue:
+							break;
+						case flow_type::f_break:
+							return f.consume_break();
+						case flow_type::f_return:
+							return f;
+					}
+				}
+				
+				return flow::normal_flow();
+			}
+		};
+		
+		class for_declare_statement: public statement {
+		private:
+			std::vector<expression<lvalue>::ptr> _decls;
+			expression<number>::ptr _expr2;
+			expression<void>::ptr _expr3;
+			statement_ptr _statement;
+		public:
+			for_declare_statement(
+				std::vector<expression<lvalue>::ptr> decls,
+				expression<number>::ptr expr2,
+				expression<void>::ptr expr3,
+				statement_ptr statement
+			):
+				_decls(std::move(decls)),
+				_expr2(std::move(expr2)),
+				_expr3(std::move(expr3)),
+				_statement(std::move(statement))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				auto _ = context.enter_scope();
+				
+				for (const expression<lvalue>::ptr& decl : _decls) {
+					context.push(decl->evaluate(context));
+				}
+				for (; _expr2->evaluate(context); _expr3->evaluate(context)) {
+					switch (flow f = _statement->execute(context); f.type()) {
+						case flow_type::f_normal:
+						case flow_type::f_continue:
+							break;
+						case flow_type::f_break:
+							return f.consume_break();
+						case flow_type::f_return:
+							return f;
+					}
+				}
+				
+				return flow::normal_flow();
+			}
+		};
 	}
-		
-	flow block_statement::execute(runtime_context& context) {
-		auto _ = context.enter_scope();
-		for (const statement_ptr& statement : _statements) {
-			switch (flow f = statement->execute(context); f.type()) {
-				case flow_type::f_normal:
-					break;
-				default:
-					return f;
-			}
-		}
-		return flow::normal_flow();
-	}
-	
-	class local_declaration_statement: public statement {
-	private:
-		std::vector<expression<lvalue>::ptr> _decls;
-	public:
-		local_declaration_statement(std::vector<expression<lvalue>::ptr> decls):
-			_decls(std::move(decls))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			for (const expression<lvalue>::ptr& decl : _decls) {
-				context.push(decl->evaluate(context));
-			}
-			return flow::normal_flow();
-		}
-	};
-		
-	using block_statement_ptr = std::unique_ptr<block_statement>;
-	
-	class break_statement: public statement {
-	private:
-		int _break_level;
-	public:
-		break_statement(int break_level):
-			_break_level(break_level)
-		{
-		}
-		
-		flow execute(runtime_context&) override {
-			return flow::break_flow(_break_level);
-		}
-	};
-	
-	class continue_statement: public statement {
-	public:
-		continue_statement() = default;
-		
-		flow execute(runtime_context&) override {
-			return flow::continue_flow();
-		}
-	};
-	
-	class return_statement: public statement {
-	private:
-		expression<lvalue>::ptr _expr;
-	public:
-		return_statement(expression<lvalue>::ptr expr) :
-			_expr(std::move(expr))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			context.retval() = _expr->evaluate(context);
-			return flow::return_flow();
-		}
-	};
-	
-	class return_void_statement: public statement {
-	public:
-		return_void_statement() = default;
-		
-		flow execute(runtime_context&) override {
-			return flow::return_flow();
-		}
-	};
-	
-	class if_statement: public statement {
-	private:
-		std::vector<expression<number>::ptr> _exprs;
-		std::vector<block_statement_ptr> _statements;
-	public:
-		if_statement(std::vector<expression<number>::ptr> exprs, std::vector<block_statement_ptr> statements):
-			_exprs(std::move(exprs)),
-			_statements(std::move(statements))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			for (size_t i = 0; i < _exprs.size(); ++i) {
-				if (_exprs[i]->evaluate(context)) {
-					return _statements[i]->execute(context);
-				}
-			}
-			return _statements.back()->execute(context);
-		}
-	};
-	
-	class if_declare_statement: public if_statement {
-	private:
-		std::vector<expression<lvalue>::ptr> _decls;
-	public:
-		if_declare_statement(
-			std::vector<expression<lvalue>::ptr> decls,
-			std::vector<expression<number>::ptr> exprs,
-			std::vector<block_statement_ptr> statements
-		):
-			if_statement(std::move(exprs), std::move(statements)),
-			_decls(std::move(decls))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			auto _ = context.enter_scope();
-			
-			for (const expression<lvalue>::ptr& decl : _decls) {
-				context.push(decl->evaluate(context));
-			}
-			
-			flow ret = if_statement::execute(context);
-			
-			return ret;
-		}
-	};
-	
-	class switch_statement: public statement {
-	private:
-		expression<number>::ptr _expr;
-		std::vector<statement_ptr> _statements;
-		std::unordered_map<number, size_t> _cases;
-		size_t _dflt;
-	public:
-		switch_statement(
-			expression<number>::ptr expr,
-			std::vector<statement_ptr> statements,
-			std::unordered_map<number, size_t> cases,
-			size_t dflt
-		):
-			_expr(std::move(expr)),
-			_statements(std::move(statements)),
-			_cases(std::move(cases)),
-			_dflt(dflt)
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			auto it = _cases.find(_expr->evaluate(context));
-			for (size_t idx = (it == _cases.end() ? _dflt : it->second); idx < _statements.size(); ++idx) {
-				switch (flow f = _statements[idx]->execute(context); f.type()) {
-					case flow_type::f_normal:
-						break;
-					case flow_type::f_break:
-						return f.consume_break();
-					default:
-						return f;
-				}
-			}
-			
-			return flow::normal_flow();
-		}
-	};
-	
-	class switch_declare_statement: public switch_statement {
-	private:
-		std::vector<expression<lvalue>::ptr> _decls;
-	public:
-		switch_declare_statement(
-			std::vector<expression<lvalue>::ptr> decls,
-			expression<number>::ptr expr,
-			std::vector<statement_ptr> statements,
-			std::unordered_map<number, size_t> cases,
-			size_t dflt
-		):
-			_decls(std::move(decls)),
-			switch_statement(std::move(expr), std::move(statements), std::move(cases), dflt)
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			auto _ = context.enter_scope();
-		
-			for (const expression<lvalue>::ptr& decl : _decls) {
-				context.push(decl->evaluate(context));
-			}
-			
-			flow ret = switch_statement::execute(context);
-			
-			return ret;
-		}
-	};
-	
-	class while_statement: public statement {
-	private:
-		expression<number>::ptr _expr;
-		block_statement_ptr _statement;
-	public:
-		while_statement(expression<number>::ptr expr, block_statement_ptr statement):
-			_expr(std::move(expr)),
-			_statement(std::move(statement))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			while (_expr->evaluate(context)) {
-				switch (flow f = _statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-					case flow_type::f_continue:
-						break;
-					case flow_type::f_break:
-						return f.consume_break();
-					case flow_type::f_return:
-						return f;
-				}
-			}
-			
-			return flow::normal_flow();
-		}
-	};
-	
-	class do_statement: public statement {
-	private:
-		expression<number>::ptr _expr;
-		block_statement_ptr _statement;
-	public:
-		do_statement(expression<number>::ptr expr, block_statement_ptr statement):
-			_expr(std::move(expr)),
-			_statement(std::move(statement))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			do {
-				switch (flow f = _statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-					case flow_type::f_continue:
-						break;
-					case flow_type::f_break:
-						return f.consume_break();
-					case flow_type::f_return:
-						return f;
-				}
-			} while (_expr->evaluate(context));
-			
-			return flow::normal_flow();
-		}
-	};
-	
-	class for_statement: public statement {
-	private:
-		expression<void>::ptr _expr1;
-		expression<number>::ptr _expr2;
-		expression<void>::ptr _expr3;
-		block_statement_ptr _statement;
-	public:
-		for_statement(
-			expression<void>::ptr expr1,
-			expression<number>::ptr expr2,
-			expression<void>::ptr expr3,
-			block_statement_ptr statement
-		):
-			_expr1(std::move(expr1)),
-			_expr2(std::move(expr2)),
-			_expr3(std::move(expr3)),
-			_statement(std::move(statement))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			for (_expr1->evaluate(context); _expr2->evaluate(context); _expr3->evaluate(context)) {
-				switch (flow f = _statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-					case flow_type::f_continue:
-						break;
-					case flow_type::f_break:
-						return f.consume_break();
-					case flow_type::f_return:
-						return f;
-				}
-			}
-			
-			return flow::normal_flow();
-		}
-	};
-	
-	class for_declare_statement: public statement {
-	private:
-		std::vector<expression<lvalue>::ptr> _decls;
-		expression<number>::ptr _expr2;
-		expression<void>::ptr _expr3;
-		block_statement_ptr _statement;
-	public:
-		for_declare_statement(
-			std::vector<expression<lvalue>::ptr> decls,
-			expression<number>::ptr expr2,
-			expression<void>::ptr expr3,
-			block_statement_ptr statement
-		):
-			_decls(std::move(decls)),
-			_expr2(std::move(expr2)),
-			_expr3(std::move(expr3)),
-			_statement(std::move(statement))
-		{
-		}
-		
-		flow execute(runtime_context& context) override {
-			auto _ = context.enter_scope();
-			
-			for (const expression<lvalue>::ptr& decl : _decls) {
-				context.push(decl->evaluate(context));
-			}
-			for (; _expr2->evaluate(context); _expr3->evaluate(context)) {
-				switch (flow f = _statement->execute(context); f.type()) {
-					case flow_type::f_normal:
-					case flow_type::f_continue:
-						break;
-					case flow_type::f_break:
-						return f.consume_break();
-					case flow_type::f_return:
-						return f;
-				}
-			}
-			
-			return flow::normal_flow();
-		}
-	};
 	
 	statement_ptr create_empty_statement() {
 		return std::make_unique<empty_statement>();
@@ -407,11 +413,11 @@ namespace stork {
 		return std::make_unique<local_declaration_statement>(std::move(decls));
 	}
 	
-	block_statement_ptr create_block_statement(std::vector<statement_ptr> statements) {
+	statement_ptr create_block_statement(std::vector<statement_ptr> statements) {
 		return std::make_unique<block_statement>(std::move(statements));
 	}
 	
-	shared_block_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements) {
+	shared_statement_ptr create_shared_block_statement(std::vector<statement_ptr> statements) {
 		return std::make_shared<block_statement>(std::move(statements));
 	}
 
@@ -434,7 +440,7 @@ namespace stork {
 	statement_ptr create_if_statement(
 		std::vector<expression<lvalue>::ptr> decls,
 		std::vector<expression<number>::ptr> exprs,
-		std::vector<block_statement_ptr> statements
+		std::vector<statement_ptr> statements
 	) {
 		if (!decls.empty()) {
 			return std::make_unique<if_declare_statement>(std::move(decls), std::move(exprs), std::move(statements));
@@ -467,11 +473,11 @@ namespace stork {
 	}
 	
 	
-	statement_ptr create_while_statement(expression<number>::ptr expr, block_statement_ptr statement) {
+	statement_ptr create_while_statement(expression<number>::ptr expr, statement_ptr statement) {
 		return std::make_unique<while_statement>(std::move(expr), std::move(statement));
 	}
 	
-	statement_ptr create_do_statement(expression<number>::ptr expr, block_statement_ptr statement) {
+	statement_ptr create_do_statement(expression<number>::ptr expr, statement_ptr statement) {
 		return std::make_unique<do_statement>(std::move(expr), std::move(statement));
 	}
 	
@@ -479,7 +485,7 @@ namespace stork {
 		expression<void>::ptr expr1,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
-		block_statement_ptr statement
+		statement_ptr statement
 	) {
 		return std::make_unique<for_statement>(std::move(expr1), std::move(expr2), std::move(expr3), std::move(statement));
 	}
@@ -488,7 +494,7 @@ namespace stork {
 		std::vector<expression<lvalue>::ptr> decls,
 		expression<number>::ptr expr2,
 		expression<void>::ptr expr3,
-		block_statement_ptr statement
+		statement_ptr statement
 	) {
 		return std::make_unique<for_declare_statement>(std::move(decls), std::move(expr2), std::move(expr3), std::move(statement));
 	}

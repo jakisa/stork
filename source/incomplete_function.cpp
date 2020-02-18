@@ -96,7 +96,7 @@ namespace stork {
 		
 		tokens_iterator it(_tokens);
 		
-		shared_block_statement_ptr stmt = compile_function_block(ctx, it, ft->return_type_id);
+		shared_statement_ptr stmt = compile_function_block(ctx, it, ft->return_type_id);
 		
 		return [stmt=std::move(stmt)] (runtime_context& ctx) {
 			stmt->execute(ctx);
