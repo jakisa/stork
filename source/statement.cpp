@@ -308,20 +308,17 @@ namespace stork {
 			}
 		};
 		
-		class for_statement: public statement {
+		class for_statement_base: public statement {
 		private:
-			expression<void>::ptr _expr1;
 			expression<number>::ptr _expr2;
 			expression<void>::ptr _expr3;
 			statement_ptr _statement;
 		public:
-			for_statement(
-				expression<void>::ptr expr1,
+			for_statement_base(
 				expression<number>::ptr expr2,
 				expression<void>::ptr expr3,
 				statement_ptr statement
 			):
-				_expr1(std::move(expr1)),
 				_expr2(std::move(expr2)),
 				_expr3(std::move(expr3)),
 				_statement(std::move(statement))
@@ -329,7 +326,7 @@ namespace stork {
 			}
 			
 			flow execute(runtime_context& context) override {
-				for (_expr1->evaluate(context); _expr2->evaluate(context); _expr3->evaluate(context)) {
+				for (; _expr2->evaluate(context); _expr3->evaluate(context)) {
 					switch (flow f = _statement->execute(context); f.type()) {
 						case flow_type::f_normal:
 						case flow_type::f_continue:
@@ -345,7 +342,29 @@ namespace stork {
 			}
 		};
 		
-		class for_declare_statement: public statement {
+		class for_statement: public for_statement_base {
+		private:
+			expression<void>::ptr _expr1;
+		public:
+			for_statement(
+				expression<void>::ptr expr1,
+				expression<number>::ptr expr2,
+				expression<void>::ptr expr3,
+				statement_ptr statement
+			):
+				for_statement_base(std::move(expr2), std::move(expr3), std::move(statement)),
+				_expr1(std::move(expr1))
+			{
+			}
+			
+			flow execute(runtime_context& context) override {
+				_expr1->evaluate(context);
+				
+				return for_statement_base::execute(context);
+			}
+		};
+		
+		class for_declare_statement: public for_statement_base {
 		private:
 			std::vector<expression<lvalue>::ptr> _decls;
 			expression<number>::ptr _expr2;
@@ -358,10 +377,8 @@ namespace stork {
 				expression<void>::ptr expr3,
 				statement_ptr statement
 			):
-				_decls(std::move(decls)),
-				_expr2(std::move(expr2)),
-				_expr3(std::move(expr3)),
-				_statement(std::move(statement))
+				for_statement_base(std::move(expr2), std::move(expr3), std::move(statement)),
+				_decls(std::move(decls))
 			{
 			}
 			
@@ -371,19 +388,8 @@ namespace stork {
 				for (const expression<lvalue>::ptr& decl : _decls) {
 					context.push(decl->evaluate(context));
 				}
-				for (; _expr2->evaluate(context); _expr3->evaluate(context)) {
-					switch (flow f = _statement->execute(context); f.type()) {
-						case flow_type::f_normal:
-						case flow_type::f_continue:
-							break;
-						case flow_type::f_break:
-							return f.consume_break();
-						case flow_type::f_return:
-							return f;
-					}
-				}
-				
-				return flow::normal_flow();
+
+				return for_statement_base::execute(context);
 			}
 		};
 	}
