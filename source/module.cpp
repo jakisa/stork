@@ -73,7 +73,7 @@ namespace stork {
 			}
 		}
 		
-		bool try_load(const char* path, std::ostream* err) {
+		bool try_load(const char* path, std::ostream* err) noexcept{
 			try {
 				load(path);
 				return true;
@@ -91,6 +91,10 @@ namespace stork {
 						},
 						*err
 					);
+				}
+			} catch(const runtime_error& e) {
+				if (err) {
+					*err << e.what() << std::endl;
 				}
 			}
 			return false;
@@ -124,7 +128,7 @@ namespace stork {
 		_impl->load(path);
 	}
 	
-	bool module::try_load(const char* path, std::ostream* err) {
+	bool module::try_load(const char* path, std::ostream* err) noexcept{
 		return _impl->try_load(path, err);
 	}
 	

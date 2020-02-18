@@ -195,7 +195,7 @@ namespace stork {
 		}
 		
 		void load(const char* path);
-		bool try_load(const char* path, std::ostream* err = nullptr);
+		bool try_load(const char* path, std::ostream* err = nullptr) noexcept;
 		
 		void reset_globals();
 		
