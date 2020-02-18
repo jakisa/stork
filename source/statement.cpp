@@ -57,7 +57,6 @@ namespace stork {
 		class block_statement: public statement {
 		private:
 			std::vector<statement_ptr> _statements;
-			size_t _scope_vars;
 		public:
 			block_statement(std::vector<statement_ptr> statements):
 				_statements(std::move(statements))
@@ -67,11 +66,8 @@ namespace stork {
 			flow execute(runtime_context& context) override {
 				auto _ = context.enter_scope();
 				for (const statement_ptr& statement : _statements) {
-					switch (flow f = statement->execute(context); f.type()) {
-						case flow_type::f_normal:
-							break;
-						default:
-							return f;
+					if (flow f = statement->execute(context); f.type() != flow_type::f_normal) {
+						return f;
 					}
 				}
 				return flow::normal_flow();
