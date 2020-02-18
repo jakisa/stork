@@ -38,6 +38,7 @@ namespace stork {
 	private:
 		std::vector<std::pair<std::string, function> > _external_functions;
 		std::vector<std::string> _public_declarations;
+		std::unordered_map<std::string, std::shared_ptr<function> > _public_functions;
 		std::unique_ptr<runtime_context> _context;
 	public:
 		module_impl(){
@@ -47,8 +48,9 @@ namespace stork {
 			return _context.get();
 		}
 		
-		void add_public_function_declaration(std::string declaration) {
+		void add_public_function_declaration(std::string declaration, std::string name, std::shared_ptr<function> fptr) {
 			_public_declarations.push_back(std::move(declaration));
+			_public_functions.emplace(std::move(name), std::move(fptr));
 		}
 		
 		void add_external_function_impl(std::string declaration, function f) {
@@ -65,6 +67,10 @@ namespace stork {
 			tokens_iterator it(stream);
 			
 			_context = std::make_unique<runtime_context>(compile(it, _external_functions, _public_declarations));
+			
+			for (const auto& p : _public_functions) {
+				*p.second = _context->get_public_function(p.first.c_str());
+			}
 		}
 		
 		bool try_load(const char* path, std::ostream* err) {
@@ -110,8 +116,8 @@ namespace stork {
 		_impl->add_external_function_impl(std::move(declaration), std::move(f));
 	}
 
-	void module::add_public_function_declaration(std::string declaration) {
-		_impl->add_public_function_declaration(std::move(declaration));
+	void module::add_public_function_declaration(std::string declaration, std::string name, std::shared_ptr<function> fptr) {
+		_impl->add_public_function_declaration(std::move(declaration), std::move(name), std::move(fptr));
 	}
 	
 	void module::load(const char* path) {

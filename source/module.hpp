@@ -101,7 +101,7 @@ namespace stork {
 				if constexpr(std::is_convertible<const std::string&, T>::value) {
 					return "string";
 				} else {
-					static_assert(std::is_convertible<number,  T>::value);
+					static_assert(std::is_convertible<number, T>::value);
 					return "number";
 				}
 			}
@@ -143,6 +143,15 @@ namespace stork {
 			return std::make_shared<variable_impl<string> >(std::make_shared<std::string>(std::move(str)));
 		}
 		
+		template <typename T>
+		T move_from_variable(const variable_ptr& v) {
+			if constexpr (std::is_same<T, std::string>::value) {
+				return std::move(*v->static_pointer_downcast<lstring>()->value);
+			} else {
+				static_assert(std::is_same<number, T>::value);
+				return v->static_pointer_downcast<lnumber>()->value;
+			}
+		}
 	}
 	
 	class module_impl;
@@ -151,7 +160,7 @@ namespace stork {
 	private:
 		std::unique_ptr<module_impl> _impl;
 		void add_external_function_impl(std::string declaration, function f);
-		void add_public_function_declaration(std::string declaration);
+		void add_public_function_declaration(std::string declaration, std::string name, std::shared_ptr<function> fptr);
 		runtime_context* get_runtime_context();
 	public:
 		module();
@@ -165,19 +174,22 @@ namespace stork {
 		}
 		
 		template<typename R, typename... Args>
-		auto create_public_function_caller(const std::string& name) {
-			add_public_function_declaration(details::create_function_declaration<R, Args...>(name.c_str()));
-			return [this, name](Args... args){
+		auto create_public_function_caller(std::string name) {
+			std::shared_ptr<function> fptr = std::make_shared<function>();
+			std::string decl = details::create_function_declaration<R, Args...>(name.c_str());
+			add_public_function_declaration(std::move(decl), std::move(name), fptr);
+			
+			return [this, fptr](Args... args){
 				if constexpr(std::is_same<R, void>::value) {
 					get_runtime_context()->call(
-						get_runtime_context()->get_public_function(name.c_str()),
-						{details::to_variable(args)...}
+						*fptr,
+						{details::to_variable(std::move(args))...}
 					);
 				} else {
-					return get_runtime_context()->call(
-						get_runtime_context()->get_public_function(name.c_str()),
+					return details::move_from_variable<R>(get_runtime_context()->call(
+						*fptr,
 						{details::to_variable(args)...}
-					)->template static_pointer_downcast<std::shared_ptr<variable_impl<R> > >()->value;
+					));
 				}
 			};
 		}
