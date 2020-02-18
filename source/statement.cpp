@@ -39,15 +39,6 @@ namespace stork {
 	}
 	
 	namespace {
-		class empty_statement: public statement {
-		public:
-			empty_statement() = default;
-			
-			flow execute(runtime_context&) override {
-				return flow::normal_flow();
-			}
-		};
-		
 		class simple_statement: public statement {
 		private:
 			expression<void>::ptr _expr;
@@ -399,10 +390,6 @@ namespace stork {
 				return flow::normal_flow();
 			}
 		};
-	}
-	
-	statement_ptr create_empty_statement() {
-		return std::make_unique<empty_statement>();
 	}
 	
 	statement_ptr create_simple_statement(expression<void>::ptr expr) {

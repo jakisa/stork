@@ -44,8 +44,6 @@ namespace stork {
 	using statement_ptr = std::unique_ptr<statement>;
 	using shared_statement_ptr = std::shared_ptr<statement>;
 	
-	statement_ptr create_empty_statement();
-	
 	statement_ptr create_simple_statement(expression<void>::ptr expr);
 	
 	statement_ptr create_local_declaration_statement(std::vector<expression<lvalue>::ptr> decls);
