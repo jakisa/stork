@@ -1,5 +1,6 @@
 #ifndef expression_tree_hpp
 #define expression_tree_hpp
+#include <memory>
 #include <variant>
 #include <vector>
 #include "tokens.hpp"
