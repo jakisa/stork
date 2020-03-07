@@ -5,6 +5,7 @@
 #include <string>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
 
 namespace stork {
 

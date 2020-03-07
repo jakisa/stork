@@ -6,7 +6,7 @@
 #include "types.hpp"
 
 namespace stork {
-	class node;
+	struct node;
 	using node_ptr=std::unique_ptr<node>;
 
 	class tokens_iterator;
