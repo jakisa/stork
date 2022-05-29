@@ -58,7 +58,7 @@ namespace stork {
 	void add_string_functions(module& m) {
 		m.add_external_function("strlen", std::function<number(const std::string&)>(
 			[](const std::string& str) {
-				return str.size();
+				return number(str.size());
 			}
 		));
 		
