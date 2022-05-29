@@ -156,14 +156,14 @@ namespace stork {
 	
 	class module_impl;
 	
-	class module {
+	class stork_module {
 	private:
 		std::unique_ptr<module_impl> _impl;
 		void add_external_function_impl(std::string declaration, function f);
 		void add_public_function_declaration(std::string declaration, std::string name, std::shared_ptr<function> fptr);
 		runtime_context* get_runtime_context();
 	public:
-		module();
+		stork_module();
 		
 		template<typename R, typename... Args>
 		void add_external_function(const char* name, std::function<R(Args...)> f) {
@@ -199,7 +199,7 @@ namespace stork {
 		
 		void reset_globals();
 		
-		~module();
+		~stork_module();
 	};
 }
 #endif /* module_hpp */

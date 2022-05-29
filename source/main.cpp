@@ -8,7 +8,7 @@ int main() {
 	
 	using namespace stork;
 	
-	module m;
+	stork_module m;
 	
 	add_standard_functions(m);
 	

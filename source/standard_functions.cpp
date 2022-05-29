@@ -9,7 +9,7 @@
 
 namespace stork {
 
-	void add_math_functions(module& m) {
+	void add_math_functions(stork_module& m) {
 		m.add_external_function("sin", std::function<number(number)>(
 			[](number x) {
 				return std::sin(x);
@@ -55,7 +55,7 @@ namespace stork {
 		));
 	}
 	
-	void add_string_functions(module& m) {
+	void add_string_functions(stork_module& m) {
 		m.add_external_function("strlen", std::function<number(const std::string&)>(
 			[](const std::string& str) {
 				return number(str.size());
@@ -69,7 +69,7 @@ namespace stork {
 		));
 	}
 	
-	void add_trace_functions(module& m) {
+	void add_trace_functions(stork_module& m) {
 		m.add_external_function("trace", std::function<void(const std::string&)>(
 			[](const std::string& str) {
 				std::cout << str << std::endl;
@@ -77,7 +77,7 @@ namespace stork {
 		));
 	}
 	
-	void add_standard_functions(module& m) {
+	void add_standard_functions(stork_module& m) {
 		add_math_functions(m);
 		add_string_functions(m);
 		add_trace_functions(m);

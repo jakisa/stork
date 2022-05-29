@@ -3,13 +3,13 @@
 
 namespace stork {
 
-	class module;
+	class stork_module;
 	
-	void add_math_functions(module& m);
-	void add_string_functions(module& m);
-	void add_trace_functions(module& m);
+	void add_math_functions(stork_module& m);
+	void add_string_functions(stork_module& m);
+	void add_trace_functions(stork_module& m);
 	
-	void add_standard_functions(module& m);
+	void add_standard_functions(stork_module& m);
 }
 
 #endif /* standard_functions_hpp */
