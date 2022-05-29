@@ -14,3 +14,7 @@ set_target_properties(stork PROPERTIES
         CXX_STANDARD_REQUIRED OFF
         CXX_EXTENSIONS OFF
 )
+
+if(NOT EXISTS ${PROJECT_BINARY_DIR}/.gitignore)
+  file(WRITE ${PROJECT_BINARY_DIR}/.gitignore "*")
+endif()
