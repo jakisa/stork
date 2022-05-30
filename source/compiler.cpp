@@ -540,6 +540,9 @@ namespace stork {
 			bool public_function = false;
 			
 			switch (it->get_reserved_token()) {
+				case reserved_token::semicolon:
+					++it;
+					break;
 				case reserved_token::kw_public:
 					public_function = true;
 					if (!(++it)->has_value(reserved_token::kw_function)) {
