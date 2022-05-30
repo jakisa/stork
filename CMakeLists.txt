@@ -7,8 +7,11 @@ project(stork)
 
 file(GLOB_RECURSE SOURCES "source/*.cpp")
 file(GLOB_RECURSE HEADERS "source/*.hpp")
+file(GLOB_RECURSE STORK "source/*.stk")
 
-add_executable(stork ${SOURCES} ${HEADERS})
+add_executable(stork ${SOURCES} ${HEADERS} ${STORK})
+
+source_group("Stork Files" FILES ${STORK})
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT stork)
 
