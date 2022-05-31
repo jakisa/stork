@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "helpers.hpp"
+#include <cassert>
 
 namespace stork {
 	bool type_registry::types_less::operator()(const type& t1, const type& t2) const {
@@ -89,6 +90,8 @@ namespace stork {
 					case simple_type::string:
 						return type_registry::get_string_handle();
 				}
+				assert(0);
+				return type_registry::get_void_handle(); //cannot happen;
 			},
 			[this](const auto& t) {
 				return &(*(_types.insert(t).first));
@@ -114,6 +117,8 @@ namespace std {
 					case simple_type::string:
 						return std::string("string");
 				}
+				assert(0);
+				return std::string(""); //cannot happen
 			},
 			[](const array_type& at) {
 				std::string ret = to_string(at.inner_type_id);

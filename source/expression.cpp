@@ -7,6 +7,7 @@
 #include "runtime_context.hpp"
 #include "tokenizer.hpp"
 #include "compiler_context.hpp"
+#include <cassert>
 
 namespace stork {
 	namespace {
@@ -674,8 +675,8 @@ namespace stork {
 						));\
 					case simple_type::nothing:\
 						throw expression_builder_error();\
-						return expression_ptr();\
 				}\
+				return expression_ptr();\
 			},\
 			[&](const function_type&) {\
 				return expression_ptr(std::make_unique<tostring_expression<R, function> > (\
@@ -1028,6 +1029,8 @@ namespace stork {
 							case simple_type::nothing:
 								RETURN_EXPRESSION_OF_TYPE(void);
 						}
+						assert(0);
+						return expression_ptr(); //cannot happen
 					},
 					[&](const function_type& ft) {
 						if (np->is_lvalue()) {
@@ -1085,8 +1088,9 @@ namespace stork {
 							return expression_builder<string>::build_param_expression(np, context);
 						case simple_type::nothing:
 							throw expression_builder_error();
-							return expression<lvalue>::ptr();
 					}
+					assert(0);
+					return expression<lvalue>::ptr(); //cannot happen
 				},
 				[&](const function_type&) {
 					return expression_builder<function>::build_param_expression(np, context);
@@ -1175,8 +1179,11 @@ namespace stork {
 					case simple_type::string:
 						return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<string> >());
 					case simple_type::nothing:
+						assert(0);
 						return expression<lvalue>::ptr(nullptr); //cannot happen
 				}
+				assert(0);
+				return expression<lvalue>::ptr(nullptr); //cannot happen
 			},
 			[&](const function_type& ft) {
 				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<function> >());
@@ -1199,6 +1206,7 @@ namespace stork {
 			},
 			[&](const init_list_type& ilt) {
 				//cannot happen
+				assert(0);
 				return expression<lvalue>::ptr();
 			}
 		}, *type_id);

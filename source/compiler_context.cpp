@@ -1,7 +1,7 @@
 #include "compiler_context.hpp"
 
 namespace stork{
-	identifier_info::identifier_info(type_handle type_id, size_t index, identifier_scope scope) :
+	identifier_info::identifier_info(type_handle type_id, int index, identifier_scope scope) :
 		_type_id(type_id),
 		_index(index),
 		_scope(scope)
@@ -12,7 +12,7 @@ namespace stork{
 		return _type_id;
 	}
 	
-	size_t identifier_info::index() const {
+	int identifier_info::index() const {
 		return _index;
 	}
 	
@@ -20,11 +20,11 @@ namespace stork{
 		return _scope;
 	}
 
-	const identifier_info* identifier_lookup::insert_identifier(std::string name, type_handle type_id, size_t index, identifier_scope scope) {
+	const identifier_info* identifier_lookup::insert_identifier(std::string name, type_handle type_id, int index, identifier_scope scope) {
 		return &_identifiers.emplace(std::move(name), identifier_info(type_id, index, scope)).first->second;
 	}
 	
-	size_t identifier_lookup::identifiers_size() const {
+	int identifier_lookup::identifiers_size() const {
 		return _identifiers.size();
 	}
 

@@ -18,14 +18,14 @@ namespace stork {
 	class identifier_info {
 	private:
 		type_handle _type_id;
-		size_t _index;
+		int _index;
 		identifier_scope _scope;
 	public:
-		identifier_info(type_handle type_id, size_t index, identifier_scope scope);
+		identifier_info(type_handle type_id, int index, identifier_scope scope);
 		
 		type_handle type_id() const;
 		
-		size_t index() const;
+		int index() const;
 		
 		identifier_scope get_scope() const;
 	};
@@ -34,8 +34,8 @@ namespace stork {
 	private:
 		std::unordered_map<std::string, identifier_info> _identifiers;
 	protected:
-		const identifier_info* insert_identifier(std::string name, type_handle type_id, size_t index, identifier_scope scope);
-		size_t identifiers_size() const;
+		const identifier_info* insert_identifier(std::string name, type_handle type_id, int index, identifier_scope scope);
+		int identifiers_size() const;
 	public:
 		virtual const identifier_info* find(const std::string& name) const;
 		
