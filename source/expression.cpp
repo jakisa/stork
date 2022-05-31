@@ -673,7 +673,6 @@ namespace stork {
 							expression_builder<string>::build_expression(np->get_children()[0], context)\
 						));\
 					case simple_type::nothing:\
-					default:\
 						throw expression_builder_error();\
 						return expression_ptr();\
 				}\
@@ -1027,7 +1026,6 @@ namespace stork {
 									RETURN_EXPRESSION_OF_TYPE(string);
 								}
 							case simple_type::nothing:
-							default:
 								RETURN_EXPRESSION_OF_TYPE(void);
 						}
 					},
@@ -1086,7 +1084,6 @@ namespace stork {
 						case simple_type::string:
 							return expression_builder<string>::build_param_expression(np, context);
 						case simple_type::nothing:
-						default:
 							throw expression_builder_error();
 							return expression<lvalue>::ptr();
 					}
@@ -1178,7 +1175,6 @@ namespace stork {
 					case simple_type::string:
 						return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<string> >());
 					case simple_type::nothing:
-					default:
 						return expression<lvalue>::ptr(nullptr); //cannot happen
 				}
 			},

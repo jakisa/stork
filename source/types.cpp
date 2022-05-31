@@ -82,14 +82,12 @@ namespace stork {
 		return std::visit(overloaded{
 			[](simple_type t) {
 				switch (t) {
+					case simple_type::nothing:
+						return type_registry::get_void_handle();
 					case simple_type::number:
 						return type_registry::get_number_handle();
 					case simple_type::string:
 						return type_registry::get_string_handle();
-					case simple_type::nothing:
-					default:
-						return type_registry::get_void_handle();
-					
 				}
 			},
 			[this](const auto& t) {
@@ -109,13 +107,12 @@ namespace std {
 		return std::visit(overloaded{
 			[](simple_type st) {
 				switch (st) {
+					case simple_type::nothing:
+						return std::string("void");
 					case simple_type::number:
 						return std::string("number");
 					case simple_type::string:
 						return std::string("string");
-					case simple_type::nothing:
-					default:
-						return std::string("void");
 				}
 			},
 			[](const array_type& at) {
