@@ -5,7 +5,6 @@
 #include "incomplete_function.hpp"
 #include "tokenizer.hpp"
 #include "runtime_context.hpp"
-#include "helpers.hpp"
 #include "push_back_stream.hpp"
 
 namespace stork {
@@ -29,22 +28,24 @@ namespace stork {
 		};
 	
 		bool is_typename(const compiler_context&, const tokens_iterator& it) {
-			return std::visit(overloaded{
-				[](reserved_token t) {
-					switch (t) {
-						case reserved_token::kw_number:
-						case reserved_token::kw_string:
-						case reserved_token::kw_void:
-						case reserved_token::open_square:
-							return true;
-						default:
-							return false;
+			return std::visit(
+				[](const auto& v) {
+					if constexpr (std::is_same_v<decltype(v), const reserved_token&>) {
+						switch (v) {
+							case reserved_token::kw_number:
+							case reserved_token::kw_string:
+							case reserved_token::kw_void:
+							case reserved_token::open_square:
+								return true;
+							default:
+								return false;
+						}
+					} else {
+						return false;
 					}
 				},
-				[](const token_value&) {
-					return false;
-				}
-			}, it->get_value());
+				it->get_value()
+			);
 		}
 	
 		error unexpected_syntax(const tokens_iterator& it) {

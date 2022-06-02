@@ -1,7 +1,6 @@
 #include "tokens.hpp"
 #include "lookup.hpp"
 #include <string_view>
-#include "helpers.hpp"
 #include <stack>
 #include "push_back_stream.hpp"
 
@@ -255,22 +254,21 @@ namespace std {
 	}
 	
 	std::string to_string(const token_value& t) {
-		return std::visit(overloaded{
-			[](reserved_token rt) {
-				return to_string(rt);
+		return std::visit(
+			[](const auto& t) {
+				if constexpr (std::is_same_v<decltype(t), const reserved_token&>) {
+					return to_string(t);
+				} else if constexpr (std::is_same_v<decltype(t), const double&>) {
+					return to_string(t);
+				} else if constexpr (std::is_same_v<decltype(t), const std::string&>) {
+					return t;
+				} else if constexpr (std::is_same_v<decltype(t), const identifier&>) {
+					return t.name;
+				} else if constexpr (std::is_same_v<decltype(t), const eof&>) {
+					return std::string("<EOF>");
+				}
 			},
-			[](double d) {
-				return to_string(d);
-			},
-			[](const std::string& str) {
-				return str;
-			},
-			[](const identifier& id) {
-				return id.name;
-			},
-			[](eof) {
-				return std::string("<EOF>");
-			}
-		}, t);
+			t
+		);
 	}
 }

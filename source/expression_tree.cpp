@@ -1,5 +1,4 @@
 #include "expression_tree.hpp"
-#include "helpers.hpp"
 #include "errors.hpp"
 #include "compiler_context.hpp"
 
@@ -22,27 +21,25 @@ namespace stork {
 				if (type_to == type_registry::get_void_handle()) {
 					return true;
 				}
-				return std::visit(overloaded{
-					[&](const array_type& at) {
+				return std::visit([&](const auto& type_to) {
+					if constexpr(std::is_same_v<decltype(type_to), const array_type&>) {
 						for (type_handle it : ilt->inner_type_id) {
-							if (it != at.inner_type_id) {
+							if (it != type_to.inner_type_id) {
 								return false;
 							}
 						}
 						return true;
-					},
-					[&](const tuple_type& tt) {
-						if (tt.inner_type_id.size() != ilt->inner_type_id.size()) {
+					} else if constexpr(std::is_same_v<decltype(type_to), const tuple_type&>) {
+						if (type_to.inner_type_id.size() != ilt->inner_type_id.size()) {
 							return false;
 						}
-						for (size_t i = 0; i < tt.inner_type_id.size(); ++i) {
-							if (ilt->inner_type_id[i] != tt.inner_type_id[i]) {
+						for (size_t i = 0; i < type_to.inner_type_id.size(); ++i) {
+							if (ilt->inner_type_id[i] != type_to.inner_type_id[i]) {
 								return false;
 							}
 						}
 						return true;
-					},
-					[&](const type&) {
+					} else {
 						return false;
 					}
 				}, *type_to);
@@ -61,24 +58,21 @@ namespace stork {
 		const type_handle number_handle = type_registry::get_number_handle();
 		const type_handle string_handle = type_registry::get_string_handle();
 		
-		std::visit(overloaded {
-			[&](const std::string& value) {
+		std::visit([&](const auto& value) {
+			if constexpr(std::is_same_v<decltype(value), const std::string&>) {
 				_type_id = string_handle;
 				_lvalue = false;
-			},
-			[&](double value) {
+			} else if constexpr(std::is_same_v<decltype(value), const double&>) {
 				_type_id = number_handle;
 				_lvalue = false;
-			},
-			[&](const identifier& value){
+			} else if constexpr(std::is_same_v<decltype(value), const identifier&>) {
 				if (const identifier_info* info = context.find(value.name)) {
 					_type_id = info->type_id();
 					_lvalue = (info->get_scope() != identifier_scope::function);
 				} else {
 					throw undeclared_error(value.name, _line_number, _char_index);
 				}
-			},
-			[&](node_operation value){
+			} else if constexpr(std::is_same_v<decltype(value), const node_operation&>) {
 				switch (value) {
 					case node_operation::param:
 						_type_id = _children[0]->_type_id;

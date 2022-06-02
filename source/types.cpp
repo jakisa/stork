@@ -1,5 +1,4 @@
 #include "types.hpp"
-#include "helpers.hpp"
 #include <cassert>
 
 namespace stork {
@@ -80,8 +79,8 @@ namespace stork {
 	}
 	
 	type_handle type_registry::get_handle(const type& t) {
-		return std::visit(overloaded{
-			[](simple_type t) {
+		return std::visit([this](const auto& t) {
+			if constexpr (std::is_same_v<decltype(t), const simple_type&>) {
 				switch (t) {
 					case simple_type::nothing:
 						return type_registry::get_void_handle();
@@ -92,8 +91,7 @@ namespace stork {
 				}
 				assert(0);
 				return type_registry::get_void_handle(); //cannot happen;
-			},
-			[this](const auto& t) {
+			} else {
 				return &(*(_types.insert(t).first));
 			}
 		}, t);
@@ -107,9 +105,9 @@ namespace stork {
 namespace std {
 	using namespace stork;
 	std::string to_string(type_handle t) {
-		return std::visit(overloaded{
-			[](simple_type st) {
-				switch (st) {
+		return std::visit([](const auto& t){
+			if constexpr(is_same_v<decltype(t), const simple_type&>) {
+				switch (t) {
 					case simple_type::nothing:
 						return std::string("void");
 					case simple_type::number:
@@ -119,36 +117,32 @@ namespace std {
 				}
 				assert(0);
 				return std::string(""); //cannot happen
-			},
-			[](const array_type& at) {
-				std::string ret = to_string(at.inner_type_id);
+			} else if constexpr(is_same_v<decltype(t), const array_type&>) {
+				std::string ret = to_string(t.inner_type_id);
 				ret += "[]";
 				return ret;
-			},
-			[](const function_type& ft) {
-				std::string ret = to_string(ft.return_type_id) + "(";
+			} else if constexpr(is_same_v<decltype(t), const function_type&>) {
+				std::string ret = to_string(t.return_type_id) + "(";
 				const char* separator = "";
-				for (const function_type::param& p: ft.param_type_id) {
+				for (const function_type::param& p: t.param_type_id) {
 					ret +=  separator + to_string(p.type_id) + (p.by_ref ? "&" : "");
 					separator = ",";
 				}
 				ret += ")";
 				return ret;
-			},
-			[](const tuple_type& tt) {
+			} else if constexpr(is_same_v<decltype(t), const tuple_type&>) {
 				std::string ret = "[";
 				const char* separator = "";
-				for (type_handle it : tt.inner_type_id) {
+				for (type_handle it : t.inner_type_id) {
 					ret +=  separator + to_string(it);
 					separator = ",";
 				}
 				ret += "]";
 				return ret;
-			},
-			[](const init_list_type& ilt) {
+			} else if constexpr(is_same_v<decltype(t), const init_list_type&>) {
 				std::string ret = "{";
 				const char* separator = "";
-				for (type_handle it : ilt.inner_type_id) {
+				for (type_handle it : t.inner_type_id) {
 					ret +=  separator + to_string(it);
 					separator = ",";
 				}

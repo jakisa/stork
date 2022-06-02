@@ -2,7 +2,6 @@
 #include <type_traits>
 #include "expression_tree.hpp"
 #include "expression_tree_parser.hpp"
-#include "helpers.hpp"
 #include "errors.hpp"
 #include "runtime_context.hpp"
 #include "tokenizer.hpp"
@@ -662,9 +661,9 @@ namespace stork {
 				expression_builder<lvalue>::build_expression(np->get_children()[0], context)\
 			));\
 		}\
-		return std::visit(overloaded{\
-			[&](simple_type st) {\
-				switch (st) {\
+		return std::visit([&](const auto& t){\
+			if constexpr(std::is_same_v<decltype(t), const simple_type&>) {\
+				switch (t) {\
 					case simple_type::number:\
 						return expression_ptr(std::make_unique<tostring_expression<R, number> > (\
 							expression_builder<number>::build_expression(np->get_children()[0], context)\
@@ -677,23 +676,19 @@ namespace stork {
 						throw expression_builder_error();\
 				}\
 				return expression_ptr();\
-			},\
-			[&](const function_type&) {\
+			} else if constexpr(std::is_same_v<decltype(t), const function_type&>) {\
 				return expression_ptr(std::make_unique<tostring_expression<R, function> > (\
 					expression_builder<function>::build_expression(np->get_children()[0], context)\
 				));\
-			},\
-			[&](const array_type&) {\
+			} else if constexpr(std::is_same_v<decltype(t), const array_type&>)  {\
 				return expression_ptr(std::make_unique<tostring_expression<R, array> > (\
 					expression_builder<array>::build_expression(np->get_children()[0], context)\
 				));\
-			},\
-			[&](const tuple_type&) {\
+			} else if constexpr(std::is_same_v<decltype(t), const tuple_type&>) {\
 				return expression_ptr(std::make_unique<tostring_expression<R, tuple> > (\
 					expression_builder<tuple>::build_expression(np->get_children()[0], context)\
 				));\
-			},\
-			[&](const init_list_type&) {\
+			} else if constexpr(std::is_same_v<decltype(t), const init_list_type&>)  {\
 				return expression_ptr(std::make_unique<tostring_expression<R, initializer_list> > (\
 					expression_builder<initializer_list>::build_expression(np->get_children()[0], context)\
 				));\
@@ -1011,9 +1006,9 @@ namespace stork {
 			}
 		public:
 			static expression_ptr build_expression(const node_ptr& np, compiler_context& context) {
-				return std::visit(overloaded{
-					[&](simple_type st){
-						switch (st) {
+				return std::visit([&](const auto& t) {
+					if constexpr(std::is_same_v<decltype(t), const simple_type&>) {
+						switch (t) {
 							case simple_type::number:
 								if (np->is_lvalue()) {
 									RETURN_EXPRESSION_OF_TYPE(lnumber);
@@ -1031,29 +1026,25 @@ namespace stork {
 						}
 						assert(0);
 						return expression_ptr(); //cannot happen
-					},
-					[&](const function_type& ft) {
+					} else if constexpr(std::is_same_v<decltype(t), const function_type&>) {
 						if (np->is_lvalue()) {
 							RETURN_EXPRESSION_OF_TYPE(lfunction);
 						} else {
 							RETURN_EXPRESSION_OF_TYPE(function);
 						}
-					},
-					[&](const array_type& at) {
+					} else if constexpr(std::is_same_v<decltype(t), const array_type&>) {
 						if (np->is_lvalue()) {
 							RETURN_EXPRESSION_OF_TYPE(larray);
 						} else {
 							RETURN_EXPRESSION_OF_TYPE(array);
 						}
-					},
-					[&](const tuple_type& tt) {
+					} else if constexpr(std::is_same_v<decltype(t), const tuple_type&>) {
 						if (np->is_lvalue()) {
 							RETURN_EXPRESSION_OF_TYPE(ltuple);
 						} else {
 							RETURN_EXPRESSION_OF_TYPE(tuple);
 						}
-					},
-					[&](const init_list_type& ilt) {
+					} else if constexpr(std::is_same_v<decltype(t), const init_list_type&>) {
 						RETURN_EXPRESSION_OF_TYPE(initializer_list);
 					}
 				}, *np->get_type_id());
@@ -1079,9 +1070,9 @@ namespace stork {
 #undef RETURN_EXPRESSION_OF_TYPE
 
 		expression<lvalue>::ptr build_lvalue_expression(type_handle type_id, const node_ptr& np, compiler_context& context) {
-			return std::visit(overloaded{
-				[&](simple_type st){
-					switch (st) {
+			return std::visit([&](const auto& t){
+				if constexpr(std::is_same_v<decltype(t), const simple_type&>) {
+					switch (t) {
 						case simple_type::number:
 							return expression_builder<number>::build_param_expression(np, context);
 						case simple_type::string:
@@ -1091,17 +1082,13 @@ namespace stork {
 					}
 					assert(0);
 					return expression<lvalue>::ptr(); //cannot happen
-				},
-				[&](const function_type&) {
+				} else if constexpr(std::is_same_v<decltype(t), const function_type&>) {
 					return expression_builder<function>::build_param_expression(np, context);
-				},
-				[&](const array_type&) {
+				} else if constexpr(std::is_same_v<decltype(t), const array_type&>) {
 					return expression_builder<array>::build_param_expression(np, context);
-				},
-				[&](const tuple_type&) {
+				} else if constexpr(std::is_same_v<decltype(t), const tuple_type&>) {
 					return expression_builder<tuple>::build_param_expression(np, context);
-				},
-				[&](const init_list_type&) {
+				} else if constexpr(std::is_same_v<decltype(t), const init_list_type&>) {
 					throw expression_builder_error();
 					return expression<lvalue>::ptr();
 				}
@@ -1171,9 +1158,9 @@ namespace stork {
 	}
 
 	expression<lvalue>::ptr build_default_initialization(type_handle type_id) {
-		return std::visit(overloaded{
-			[&](simple_type st){
-				switch (st) {
+		return std::visit([](const auto& t){
+			if constexpr(std::is_same_v<decltype(t), const simple_type&>){
+				switch (t) {
 					case simple_type::number:
 						return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<number> >());
 					case simple_type::string:
@@ -1184,27 +1171,23 @@ namespace stork {
 				}
 				assert(0);
 				return expression<lvalue>::ptr(nullptr); //cannot happen
-			},
-			[&](const function_type& ft) {
+			} else if constexpr(std::is_same_v<decltype(t), const function_type&>){
 				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<function> >());
-			},
-			[&](const array_type& at) {
+			} else if constexpr(std::is_same_v<decltype(t), const array_type&>){
 				return expression<lvalue>::ptr(std::make_unique<default_initialization_expression<array> >());
-			},
-			[&](const tuple_type& tt) {
+			} else if constexpr(std::is_same_v<decltype(t), const tuple_type&>){
 				std::vector<expression<lvalue>::ptr> exprs;
 				
-				exprs.reserve(tt.inner_type_id.size());
+				exprs.reserve(t.inner_type_id.size());
 				
-				for (type_handle it : tt.inner_type_id) {
+				for (type_handle it : t.inner_type_id) {
 					exprs.emplace_back(build_default_initialization(it));
 				}
 				
 				return expression<lvalue>::ptr(
 					std::make_unique<tuple_initialization_expression>(std::move(exprs))
 				);
-			},
-			[&](const init_list_type& ilt) {
+			} else if constexpr(std::is_same_v<decltype(t), const init_list_type&>){
 				//cannot happen
 				assert(0);
 				return expression<lvalue>::ptr();
